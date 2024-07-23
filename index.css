@@ -1,0 +1,134 @@
+.container-fluid{
+  background-color: rgb(238, 233, 233);
+}
+
+.nav-pills .nav-link.active {
+  background-color: hsl(147, 93%, 16%) !important;
+  color: #fdfdfd !important;
+}
+
+.nav-pills li a:hover {
+  background-color: #034F25; 
+  transition: 0.5s;
+}
+.search-icon, .add-icon{
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-right: 8px;
+  }
+.nav-item a:hover .fs-5 {
+  color: #fdfdfd; 
+}
+
+#sidebar {
+  transition: width 0.3s ease;
+}
+
+.nav-link span {
+  display: inline-block; /* Show text elements */
+  transition: opacity 0.3s ease;
+}
+
+#sidebar.collapsed{
+  width: 15vh;
+}
+
+
+#sidebar.collapsed .nav-link span,
+#sidebar.collapsed #sidebar-span{
+  opacity: 0;
+}
+
+#sidebar.collapsed .nav-link.active{
+  width: 50px;
+}
+
+#sidebar.collapsed .nav-pills li a:hover{
+  width: 50px;
+  transition: 1s;
+}
+
+/*SIGN-IN*/
+
+.login{
+  background-color: #07B053;
+  height: 300px;
+  width: 200px;
+}
+
+/*DASHBOARD PAGE*/
+.h-dashboard, .h-products, .h-form, .h-reports{
+  font-family: Oswald;
+}
+
+.overview{
+  font-family: Oswald;
+}
+.item-total, .item-borrowed, .item-lowstock{
+  height: 150px;
+  width: 350px;
+  border-radius: 15px;
+  box-shadow: 2px 2px 4px 2px rgba(0, 0, 0, 0.2);
+}
+
+.item-total{
+  background-color: #255651; 
+}
+
+.item-borrowed{
+  background-color: #8CBA9C;
+}
+
+.item-lowstock{
+  background-color: #32746D;
+}
+
+.overview-number{
+  font-family: Bebas Neue;
+  font-size: 50px;
+  margin: 0;
+}
+
+.overview-category{
+  font-family: Oswald;
+  font-size: 30px;
+}
+
+
+
+/*PRODUCTS PAGE */
+
+.categoryFilter, .statusFilter{
+  border: none;
+  font-weight: bold;
+}
+
+.statusFilter{
+  width: 80px;
+}
+
+
+
+.action-btn{
+  border-radius: 10px;
+}
+
+/*POP UP (PRODUCTS)*/
+
+.popup{
+  width: 600px;
+  background-color: pink;
+  position: absolute;
+  border-radius: 5px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  padding: 0 30px 30px;
+  visibility: hidden;
+}
+
+
+/*FORM*/
+
+
