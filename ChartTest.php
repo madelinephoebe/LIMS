@@ -10,232 +10,182 @@
  * file that was distributed with this source code. For the full list of
  * contributors, visit https://github.com/PHPOffice/PHPWord/contributors.
  *
- * @see         https://github.com/PHPOffice/PHPWord
+ * @see       https://github.com/PHPOffice/PHPWord
  *
- * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
+ * @license   http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\Word2007\Element;
+namespace PhpOffice\PhpWordTests\Style;
 
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Settings;
-use PhpOffice\PhpWordTests\TestHelperDOCX;
+use PhpOffice\PhpWord\Style\Chart;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\Word2007\Element subnamespace.
+ * Test class for PhpOffice\PhpWord\Style\Chart.
+ *
+ * @coversDefaultClass          \PhpOffice\PhpWord\Style\Chart
+ *
+ * @runTestsInSeparateProcesses
  */
 class ChartTest extends \PHPUnit\Framework\TestCase
 {
-    private $outputEscapingEnabled;
-
     /**
-     * Executed before each method of the class.
+     * Testing getter and setter for chart width.
      */
-    protected function setUp(): void
+    public function testSetGetWidth(): void
     {
-        $this->outputEscapingEnabled = Settings::isOutputEscapingEnabled();
-    }
+        $chart = new Chart();
 
-    /**
-     * Executed after each method of the class.
-     */
-    protected function tearDown(): void
-    {
-        Settings::setOutputEscapingEnabled($this->outputEscapingEnabled);
-        TestHelperDOCX::clear();
+        self::assertEquals($chart->getWidth(), 1000000);
+
+        $chart->setWidth(200);
+
+        self::assertEquals($chart->getWidth(), 200);
     }
 
     /**
-     * Test chart elements.
+     * Testing getter and setter for chart height.
      */
-    public function testChartElements(): void
+    public function testSetGetHeight(): void
     {
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        $style = [
-            'width' => 5000000,
-            'height' => 5000000,
-            'showAxisLabels' => true,
-            'showGridX' => true,
-            'showGridY' => true,
-            'showLegend' => false,
-        ];
+        $chart = new Chart();
 
-        $chartTypes = ['pie', 'doughnut', 'bar', 'line', 'area', 'scatter', 'radar'];
-        $categories = ['A', 'B', 'C', 'D', 'E'];
-        $series1 = [1, 3, 2, 5, 4];
-        foreach ($chartTypes as $chartType) {
-            $section->addChart($chartType, $categories, $series1, $style);
-        }
-        $colorArray = ['FFFFFF', '000000', 'FF0000', '00FF00', '0000FF'];
-        $numColor = count($colorArray);
-        $chart = $section->addChart('pie', $categories, $series1, $style);
-        $chart->getStyle()->setColors($colorArray)->setTitle('3d chart')->set3d(true);
-        $chart = $section->addChart('stacked_bar', $categories, $series1, $style);
-        $chart->getStyle()->setColors($colorArray)->setShowLegend(true);
-        $chart = $section->addChart('scatter', $categories, $series1, $style);
-        $chart->getStyle()->setMajorTickPosition('cross');
-        $section->addChart('scatter', $categories, $series1, $style, 'seriesname');
+        self::assertEquals($chart->getHeight(), 1000000);
 
-        $doc = TestHelperDOCX::getDocument($phpWord);
+        $chart->setHeight(200);
 
-        $index = 0;
-        foreach ($chartTypes as $chartType) {
-            ++$index;
-            $file = "word/charts/chart{$index}.xml";
-            $path = "/c:chartSpace/c:chart/c:plotArea/c:{$chartType}Chart";
-            self::assertTrue($doc->elementExists($path, $file), "chart type $chartType");
-        }
-
-        $index = 11;
-        $file = "word/charts/chart{$index}.xml";
-        $doc->setDefaultFile($file);
-        $chartType = 'scatter';
-        $path = "/c:chartSpace/c:chart/c:plotArea/c:{$chartType}Chart";
-        self::assertEquals('seriesname', $doc->getElement($path . '/c:ser/c:tx/c:strRef/c:strCache/c:pt/c:v')->nodeValue);
-
-        $index = 8;
-        $file = "word/charts/chart{$index}.xml";
-        $doc->setDefaultFile($file);
-        $chartType = 'pie3D';
-        $path = "/c:chartSpace/c:chart/c:plotArea/c:{$chartType}Chart";
-        for ($idx = 0; $idx < $numColor; ++$idx) {
-            $idxp1 = $idx + 1;
-            $element = $path . "/c:ser/c:dPt[$idxp1]/c:spPr/a:solidFill/a:srgbClr";
-            self::assertEquals($colorArray[$idx], $doc->getElementAttribute($element, 'val'), "pie3d chart idx=$idx");
-        }
-
-        $index = 9;
-        $file = "word/charts/chart{$index}.xml";
-        $doc->setDefaultFile($file);
-        $chartType = 'bar';
-        $path = "/c:chartSpace/c:chart/c:plotArea/c:{$chartType}Chart";
-        for ($idxp1 = 1; $idxp1 < $numColor; ++$idxp1) {
-            $idx = $idxp1; // stacked bar chart is shifted
-            $element = $path . "/c:ser/c:dPt[$idxp1]/c:spPr/a:solidFill/a:srgbClr";
-            self::assertEquals($colorArray[$idx - 1], $doc->getElementAttribute($element, 'val'), "bar chart idx=$idx");
-        }
+        self::assertEquals($chart->getHeight(), 200);
     }
 
-    public function testChartEscapingEnabled(): void
+    /**
+     * Testing getter and setter for is3d.
+     */
+    public function testSetIs3d(): void
     {
-        Settings::setOutputEscapingEnabled(true);
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        $style = [
-            'width' => 5000000,
-            'height' => 5000000,
-            'showAxisLabels' => true,
-            'showGridX' => true,
-            'showGridY' => true,
-            'showLegend' => false,
-            'valueAxisTitle' => 'Values',
-        ];
-        $categories = ['A&B', 'C<D>', 'E', 'F', 'G'];
-        $series1 = [1, 3, 2, 5, 4];
-        $section->addChart('bar', $categories, $series1, $style);
-        $doc = TestHelperDOCX::getDocument($phpWord);
+        $chart = new Chart();
 
-        $index = 1;
-        $file = "word/charts/chart{$index}.xml";
-        $doc->setDefaultFile($file);
-        $chartType = 'bar';
-        $path = "/c:chartSpace/c:chart/c:plotArea/c:{$chartType}Chart/c:ser/c:cat/c:strLit";
-        $element = "$path/c:pt[1]/c:v";
-        self::assertEquals('A&B', $doc->getElement($element)->nodeValue);
-        $element = "$path/c:pt[2]/c:v";
-        self::assertEquals('C<D>', $doc->getElement($element)->nodeValue);
+        self::assertEquals($chart->is3d(), false);
+
+        $chart->set3d(true);
+
+        self::assertEquals($chart->is3d(), true);
     }
 
-    public function testChartEscapingDisabled(): void
+    /**
+     * Testing getter and setter for chart colors.
+     */
+    public function testSetGetColors(): void
     {
-        Settings::setOutputEscapingEnabled(false);
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        $style = [
-            'width' => 5000000,
-            'height' => 5000000,
-            'showAxisLabels' => true,
-            'showGridX' => true,
-            'showGridY' => true,
-            'showLegend' => false,
-            'valueAxisTitle' => 'Values',
-        ];
-        $categories = ['A&amp;B', 'C&lt;D&gt;', 'E', 'F', 'G'];
-        $series1 = [1, 3, 2, 5, 4];
-        $section->addChart('bar', $categories, $series1, $style);
-        $doc = TestHelperDOCX::getDocument($phpWord);
+        $chart = new Chart();
 
-        $index = 1;
-        $file = "word/charts/chart{$index}.xml";
-        $doc->setDefaultFile($file);
-        $chartType = 'bar';
-        $path = "/c:chartSpace/c:chart/c:plotArea/c:{$chartType}Chart/c:ser/c:cat/c:strLit";
-        $element = "$path/c:pt[1]/c:v";
-        self::assertEquals('A&B', $doc->getElement($element)->nodeValue);
-        $element = "$path/c:pt[2]/c:v";
-        self::assertEquals('C<D>', $doc->getElement($element)->nodeValue);
+        self::assertIsArray($chart->getColors());
+
+        self::assertEquals(count($chart->getColors()), 0);
+
+        $chart->setColors(['FFFFFFFF', 'FF000000', 'FFFF0000']);
+
+        self::assertEquals($chart->getColors(), ['FFFFFFFF', 'FF000000', 'FFFF0000']);
     }
 
-    public function testValueAxisTitle(): void
+    /**
+     * Testing getter and setter for dataLabelOptions.
+     */
+    public function testSetGetDataLabelOptions(): void
     {
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        $style = [
-            'width' => 5000000,
-            'height' => 5000000,
-            'showAxisLabels' => true,
-            'showGridX' => true,
-            'showGridY' => true,
-            'showLegend' => false,
-            'valueAxisTitle' => 'Values',
-        ];
-        $chartType = 'line';
-        $categories = ['A', 'B', 'C', 'D', 'E'];
-        $series1 = [1, 3, 2, 5, 4];
-        $section->addChart($chartType, $categories, $series1, $style);
-        $doc = TestHelperDOCX::getDocument($phpWord);
+        $chart = new Chart();
 
-        $index = 1;
-        $file = "word/charts/chart{$index}.xml";
-        $doc->setDefaultFile($file);
-        $chartType = 'line';
-        $path = '/c:chartSpace/c:chart/c:plotArea';
-        $element = "$path/c:{$chartType}Chart";
-        self::assertTrue($doc->elementExists($path));
-        $element = "$path/c:valAx";
-        self::assertTrue($doc->elementExists($element));
-        $element .= '/c:title/c:tx/c:rich/a:p/a:r/a:t';
-        self::assertEquals('Values', $doc->getElement($element)->nodeValue);
+        $originalDataLabelOptions = [
+            'showVal' => true,
+            'showCatName' => true,
+            'showLegendKey' => false,
+            'showSerName' => false,
+            'showPercent' => false,
+            'showLeaderLines' => false,
+            'showBubbleSize' => false,
+        ];
+
+        self::assertEquals($chart->getDataLabelOptions(), $originalDataLabelOptions);
+
+        $changedDataLabelOptions = [
+            'showVal' => false,
+            'showCatName' => false,
+            'showLegendKey' => true,
+            'showSerName' => true,
+            'showPercent' => true,
+            'showLeaderLines' => true,
+            'showBubbleSize' => true,
+        ];
+
+        $chart->setDataLabelOptions(
+            [
+                'showVal' => false,
+                'showCatName' => false,
+                'showLegendKey' => true,
+                'showSerName' => true,
+                'showPercent' => true,
+                'showLeaderLines' => true,
+                'showBubbleSize' => true,
+            ]
+        );
+        self::assertEquals($chart->getDataLabelOptions(), $changedDataLabelOptions);
     }
 
-    public function testNoAxisLabels(): void
+    /**
+     * Testing categoryLabelPosition getter and setter.
+     */
+    public function testSetGetCategoryLabelPosition(): void
     {
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        $style = [
-            'width' => 5000000,
-            'height' => 5000000,
-            'showAxisLabels' => false,
-            'showGridX' => true,
-            'showGridY' => true,
-            'showLegend' => false,
-            'valueAxisTitle' => 'Values',
-        ];
-        $chartType = 'line';
-        $categories = ['A', 'B', 'C', 'D', 'E'];
-        $series1 = [1, 3, 2, 5, 4];
-        $section->addChart($chartType, $categories, $series1, $style);
-        $doc = TestHelperDOCX::getDocument($phpWord);
+        $chart = new Chart();
 
-        $index = 1;
-        $file = "word/charts/chart{$index}.xml";
-        $doc->setDefaultFile($file);
-        $chartType = 'line';
-        $path = '/c:chartSpace/c:chart/c:plotArea';
-        $element = "$path/c:{$chartType}Chart";
-        $element = "$path/c:valAx";
-        $element .= '/c:tickLblPos';
-        self::assertEquals('none', $doc->getElementAttribute($element, 'val'));
+        self::assertEquals($chart->getCategoryLabelPosition(), 'nextTo');
+
+        $chart->setCategoryLabelPosition('high');
+
+        self::assertEquals($chart->getCategoryLabelPosition(), 'high');
+    }
+
+    /**
+     * Testing valueLabelPosition getter and setter.
+     */
+    public function testSetGetValueLabelPosition(): void
+    {
+        $chart = new Chart();
+
+        self::assertEquals($chart->getValueLabelPosition(), 'nextTo');
+
+        $chart->setValueLabelPosition('low');
+
+        self::assertEquals($chart->getValueLabelPosition(), 'low');
+    }
+
+    /**
+     * Testing categoryAxisTitle getter and setter.
+     */
+    public function testSetGetCategoryAxisTitle(): void
+    {
+        $chart = new Chart();
+
+        $chart->getCategoryAxisTitle();
+
+        self::assertEquals($chart->getCategoryAxisTitle(), null);
+
+        $chart->setCategoryAxisTitle('Test Category Axis Title');
+
+        self::assertEquals($chart->getCategoryAxisTitle(), 'Test Category Axis Title');
+    }
+
+    /**
+     * Testing valueAxisTitle getter and setter.
+     */
+    public function testSetGetValueAxisTitle(): void
+    {
+        $chart = new Chart();
+
+        $chart->getValueAxisTitle();
+
+        self::assertEquals($chart->getValueAxisTitle(), null);
+
+        $chart->setValueAxisTitle('Test Value Axis Title');
+
+        self::assertEquals($chart->getValueAxisTitle(), 'Test Value Axis Title');
     }
 }

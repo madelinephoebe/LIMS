@@ -15,64 +15,47 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\Word2007\Part;
+namespace PhpOffice\PhpWordTests\Style;
 
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\SimpleType\NumberFormat;
-use PhpOffice\PhpWordTests\TestHelperDOCX;
+use PhpOffice\PhpWord\Style\Numbering;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\Word2007\Part\Numbering.
+ * Test class for PhpOffice\PhpWord\Style\Numbering.
  *
- * @coversDefaultClass \PhpOffice\PhpWord\Writer\Word2007\Part\Numbering
- *
- * @runTestsInSeparateProcesses
- *
- * @since 0.10.0
+ * @coversDefaultClass \PhpOffice\PhpWord\Style\Numbering
  */
 class NumberingTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * Executed before each method of the class.
+     * Test get/set.
      */
-    protected function tearDown(): void
+    public function testGetSetProperties(): void
     {
-        TestHelperDOCX::clear();
+        $object = new Numbering();
+        $properties = [
+            'numId' => [null, 1],
+            'type' => [null, 'singleLevel'],
+        ];
+        foreach ($properties as $property => $value) {
+            [$default, $expected] = $value;
+            $get = "get{$property}";
+            $set = "set{$property}";
+
+            self::assertEquals($default, $object->$get()); // Default value
+
+            $object->$set($expected);
+
+            self::assertEquals($expected, $object->$get()); // New value
+        }
     }
 
     /**
-     * Write footnotes.
+     * Test get level.
      */
-    public function testWriteNumbering(): void
+    public function testGetLevels(): void
     {
-        $xmlFile = 'word/numbering.xml';
+        $object = new Numbering();
 
-        $phpWord = new PhpWord();
-        $phpWord->addNumberingStyle(
-            'numStyle',
-            [
-                'type' => 'multilevel',
-                'levels' => [
-                    [
-                        'start' => 1,
-                        'format' => NumberFormat::DECIMAL,
-                        'restart' => 1,
-                        'suffix' => 'space',
-                        'text' => '%1.',
-                        'alignment' => Jc::START,
-                        'left' => 360,
-                        'hanging' => 360,
-                        'tabPos' => 360,
-                        'font' => 'Arial',
-                        'hint' => 'default',
-                    ],
-                ],
-            ]
-        );
-
-        $doc = TestHelperDOCX::getDocument($phpWord, 'Word2007');
-
-        self::assertTrue($doc->elementExists('/w:numbering/w:abstractNum', $xmlFile));
+        self::assertEmpty($object->getLevels());
     }
 }

@@ -15,174 +15,221 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\HTML;
+namespace PhpOffice\PhpWordTests\Reader\Word2007;
 
-use DOMXPath;
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Shared\Converter;
-use PhpOffice\PhpWord\Writer\HTML\Part\Body;
+use PhpOffice\PhpWordTests\AbstractTestReader;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\HTML\Part subnamespace.
+ * Test class for PhpOffice\PhpWord\Reader\Word2007 subnamespace.
  */
-class PartTest extends \PHPUnit\Framework\TestCase
+class PartTest extends AbstractTestReader
 {
     /**
-     * Test get parent writer exception.
+     * Test reading Footnotes.
      */
-    public function testGetParentWriterException(): void
+    public function testReadFootnote(): void
     {
-        $this->expectException(\PhpOffice\PhpWord\Exception\Exception::class);
-        $object = new Body();
-        $object->getParentWriter();
+        $documentXml = '<w:p>
+                <w:r>
+                    <w:t>This is a test</w:t>
+                </w:r>
+                <w:r>
+                    <w:rPr>
+                        <w:rStyle w:val="FootnoteReference"/>
+                    </w:rPr>
+                    <w:footnoteReference w:id="1"/>
+                </w:r>
+            </w:p>
+            <w:p>
+                <w:r>
+                    <w:t>And another one</w:t>
+                </w:r>
+                <w:r>
+                    <w:rPr>
+                        <w:rStyle w:val="EndnoteReference"/>
+                    </w:rPr>
+                    <w:endnoteReference w:id="2"/>
+                </w:r>
+            </w:p>';
+
+        $footnotesXml = '<w:footnote w:type="separator" w:id="-1">
+                <w:p>
+                    <w:r>
+                        <w:separator/>
+                    </w:r>
+                </w:p>
+            </w:footnote>
+            <w:footnote w:id="1">
+                <w:p>
+                    <w:pPr>
+                        <w:pStyle w:val="FootnoteText"/>
+                    </w:pPr>
+                    <w:r>
+                        <w:rPr>
+                            <w:rStyle w:val="FootnoteReference"/>
+                        </w:rPr>
+                        <w:footnoteRef/>
+                    </w:r>
+                    <w:r>
+                        <w:rPr>
+                            <w:lang w:val="nl-NL"/>
+                        </w:rPr>
+                        <w:t>footnote text</w:t>
+                    </w:r>
+                </w:p>
+            </w:footnote>';
+
+        $endnotesXml = '<w:endnote w:type="separator" w:id="-1">
+                <w:p>
+                    <w:r>
+                        <w:separator/>
+                    </w:r>
+                </w:p>
+            </w:endnote>
+            <w:endnote w:type="continuationNotice" w:id="1">
+                <w:p>
+                    <w:r>
+                        <w:separator/>
+                    </w:r>
+                </w:p>
+            </w:endnote>
+            <w:endnote w:id="2">
+                <w:p>
+                    <w:pPr>
+                        <w:pStyle w:val="EndnoteText"/>
+                    </w:pPr>
+                    <w:r>
+                        <w:rPr>
+                            <w:rStyle w:val="EndnoteReference"/>
+                        </w:rPr>
+                        <w:endnoteRef/>
+                    </w:r>
+                    <w:r>
+                        <w:rPr>
+                            <w:lang w:val="nl-NL"/>
+                        </w:rPr>
+                        <w:t>This is an endnote</w:t>
+                    </w:r>
+                </w:p>
+            </w:endnote>';
+
+        $phpWord = $this->getDocumentFromString(['document' => $documentXml, 'footnotes' => $footnotesXml, 'endnotes' => $endnotesXml]);
+
+        $elements = $phpWord->getSection(0)->getElements();
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\TextRun', $elements[0]);
+        /** @var \PhpOffice\PhpWord\Element\TextRun $textRun */
+        $textRun = $elements[0];
+
+        //test the text in the first paragraph
+        /** @var \PhpOffice\PhpWord\Element\Text $text */
+        $text = $elements[0]->getElement(0);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Text', $text);
+        self::assertEquals('This is a test', $text->getText());
+
+        //test the presence of the footnote in the document.xml
+        /** @var \PhpOffice\PhpWord\Element\Footnote $footnote */
+        $documentFootnote = $textRun->getElement(1);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Footnote', $documentFootnote);
+        self::assertEquals(1, $documentFootnote->getRelationId());
+
+        //test the presence of the footnote in the footnote.xml
+        /** @var \PhpOffice\PhpWord\Element\Footnote $footnote */
+        $footnote = $phpWord->getFootnotes()->getItem(1);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Footnote', $footnote);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Text', $footnote->getElement(0));
+        self::assertEquals('footnote text', $footnote->getElement(0)->getText());
+        self::assertEquals(1, $footnote->getRelationId());
+
+        //test the text in the second paragraph
+        /** @var \PhpOffice\PhpWord\Element\Text $text */
+        $text = $elements[1]->getElement(0);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Text', $text);
+        self::assertEquals('And another one', $text->getText());
+
+        //test the presence of the endnote in the document.xml
+        /** @var \PhpOffice\PhpWord\Element\Endnote $endnote */
+        $documentEndnote = $elements[1]->getElement(1);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Endnote', $documentEndnote);
+        self::assertEquals(2, $documentEndnote->getRelationId());
+
+        //test the presence of the endnote in the endnote.xml
+        /** @var \PhpOffice\PhpWord\Element\Endnote $endnote */
+        $endnote = $phpWord->getEndnotes()->getItem(1);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Endnote', $endnote);
+        self::assertEquals(2, $endnote->getRelationId());
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Text', $endnote->getElement(0));
+        self::assertEquals('This is an endnote', $endnote->getElement(0)->getText());
     }
 
-    /**
-     * Tests writing multiple sections.
-     */
-    public function testWriteSections(): void
+    public function testReadHeadingWithOverriddenStyle(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setThemeFontLang(new \PhpOffice\PhpWord\Style\Language('en-US'));
-        $section1 = $phpWord->addSection();
-        $mtop = 0.5 * Converter::INCH_TO_TWIP;
-        $mbot = 0.5 * Converter::INCH_TO_TWIP;
-        $mrig = 0.75 * Converter::INCH_TO_TWIP;
-        $mlef = 0.75 * Converter::INCH_TO_TWIP;
-        $section1
-            ->getStyle()
-            ->setPaperSize('Letter')
-            ->setMarginTop($mtop)
-            ->setMarginBottom($mbot)
-            ->setMarginLeft($mlef)
-            ->setMarginRight($mrig);
-        $section1->getStyle()->setPortrait();
-        $section1->addText('In theory, this will be printed portrait on letter paper');
+        $documentXml = '<w:p>
+            <w:pPr>
+                <w:pStyle w:val="Heading1"/>
+            </w:pPr>
+            <w:r>
+                <w:t>This is a bold </w:t>
+            </w:r>
+            <w:r w:rsidRPr="00377798">
+                <w:rPr>
+                    <w:b w:val="0"/>
+                </w:rPr>
+                <w:t>heading</w:t>
+            </w:r>
+            <w:r>
+                <w:t xml:space="preserve"> but with parts not in bold</w:t>
+            </w:r>
+            </w:p>';
 
-        $section2 = $phpWord->addSection();
-        $mtop = 0.6 * Converter::INCH_TO_TWIP;
-        $mbot = 0.6 * Converter::INCH_TO_TWIP;
-        $mrig = 0.65 * Converter::INCH_TO_TWIP;
-        $mlef = 0.65 * Converter::INCH_TO_TWIP;
-        $section2
-            ->getStyle()
-            ->setPaperSize('A4')
-            ->setMarginTop($mtop)
-            ->setMarginBottom($mbot)
-            ->setMarginLeft($mlef)
-            ->setMarginRight($mrig);
-        $section2->getStyle()->setLandscape();
-        $section2->addText('In theory, this will be printed landscape on A4 paper');
+        $stylesXml = '<w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+                <w:name w:val="Normal"/>
+                <w:qFormat/>
+            </w:style>
+            <w:style w:type="paragraph" w:styleId="Heading1">
+                <w:name w:val="heading 1"/>
+                <w:basedOn w:val="Normal"/>
+                <w:next w:val="Normal"/>
+                <w:link w:val="Heading1Char"/>
+                <w:uiPriority w:val="9"/>
+                <w:qFormat/>
+                <w:rsid w:val="00377798"/>
+                <w:pPr>
+                    <w:keepNext/>
+                    <w:keepLines/>
+                    <w:spacing w:before="240"/>
+                    <w:outlineLvl w:val="0"/>
+                </w:pPr>
+                <w:rPr>
+                    <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi"/>
+                    <w:b/>
+                    <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF"/>
+                    <w:sz w:val="32"/>
+                    <w:szCs w:val="32"/>
+                </w:rPr>
+            </w:style>';
 
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
+        $phpWord = $this->getDocumentFromString(['document' => $documentXml, 'styles' => $stylesXml]);
 
-        self::assertEquals('en-US', Helper::getTextContent($xpath, '/html', 'lang'));
-        self::assertEquals(2, Helper::getLength($xpath, '/html/body/div'));
-        self::assertEquals('page: page1', Helper::getTextContent($xpath, '/html/body/div[1]', 'style'));
-        self::assertEquals('page: page2', Helper::getTextContent($xpath, '/html/body/div[2]', 'style'));
+        $elements = $phpWord->getSection(0)->getElements();
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Title', $elements[0]);
+        /** @var \PhpOffice\PhpWord\Element\Title $title */
+        $title = $elements[0];
+        self::assertEquals('Heading1', $title->getStyle());
 
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        self::assertNotFalse(strpos($style, 'body > div + div {page-break-before: always;}'));
-        self::assertNotFalse(strpos($style, 'div > *:first-child {page-break-before: auto;}'));
-        self::assertNotFalse(strpos($style, '@page page1 {size: Letter portrait; margin-right: 0.75in; margin-left: 0.75in; margin-top: 0.5in; margin-bottom: 0.5in; }'));
-        self::assertNotFalse(strpos($style, '@page page2 {size: A4 landscape; margin-right: 0.65in; margin-left: 0.65in; margin-top: 0.6in; margin-bottom: 0.6in; }'));
-    }
+        /** @var \PhpOffice\PhpWord\Element\Text $text */
+        $text = $title->getText()->getElement(0);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Text', $text);
+        self::assertEquals('This is a bold ', $text->getText());
 
-    /**
-     * Tests theme font East Asian.
-     */
-    public function testThemeFontEastAsian(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setThemeFontLang(new \PhpOffice\PhpWord\Style\Language('', 'hi-IN'));
-        $section1 = $phpWord->addSection();
-        $section1->addText('??? ????? ???');
+        /** @var \PhpOffice\PhpWord\Element\Text $text */
+        $text = $title->getText()->getElement(1);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Text', $text);
+        self::assertEquals('heading', $text->getText());
+        self::assertFalse($text->getFontStyle()->isBold());
 
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        self::assertEquals('hi-IN', Helper::getTextContent($xpath, '/html', 'lang'));
-    }
-
-    /**
-     * Tests theme font bidirectional.
-     */
-    public function testThemeBidirecional(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setThemeFontLang(new \PhpOffice\PhpWord\Style\Language('', '', 'he-IL'));
-        $section1 = $phpWord->addSection();
-        $section1->addText('????');
-
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        self::assertEquals('he-IL', Helper::getTextContent($xpath, '/html', 'lang'));
-    }
-
-    /**
-     * Tests writing when default paragraph style is specified.
-     */
-    public function testDefaultParagraphStyle(): void
-    {
-        $phpWord = new PhpWord();
-        $nospacebeforeafter = ['spaceBefore' => 0, 'spaceAfter' => 0];
-        $phpWord->setDefaultParagraphStyle($nospacebeforeafter);
-        $section1 = $phpWord->addSection();
-        $section1->addText('First paragraph with no space before or after');
-        $section1->addText('Second paragraph with no space before or after');
-
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html', 'lang'));
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        self::assertNotFalse(strpos($style, 'p, .Normal {margin-top: 0pt; margin-bottom: 0pt;}'));
-    }
-
-    /**
-     * Tests writing when default paragraph style is omitted.
-     */
-    public function testNoDefaultParagraphStyle(): void
-    {
-        $phpWord = new PhpWord();
-        $section1 = $phpWord->addSection();
-        $section1->addText('First paragraph with no space before or after');
-        $section1->addText('Second paragraph with no space before or after');
-
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        self::assertFalse(strpos($style, 'Normal'));
-    }
-
-    /**
-     * Tests title styles.
-     */
-    public function testTitleStyles(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->setDefaultParagraphStyle(['spaceBefore' => 0, 'spaceAfter' => 0]);
-        $phpWord->addTitleStyle(1, ['bold' => true, 'name' => 'Calibri'], ['spaceBefore' => 10, 'spaceAfter' => 10]);
-        $phpWord->addTitleStyle(2, ['italic' => true, 'name' => 'Times New Roman'], ['spaceBefore' => 5, 'spaceAfter' => 5]);
-        $section1 = $phpWord->addSection();
-        $section1->addTitle('Header 1 #1', 1);
-        $section1->addTitle('Header 2 #1', 2);
-        $section1->addText('Paragraph under header 2 #1');
-        $section1->addTitle('Header 2 #2', 2);
-        $section1->addText('Paragraph under header 2 #2');
-
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        self::assertNotFalse(strpos($style, 'h1 {font-family: \'Calibri\'; font-weight: bold;}'));
-        self::assertNotFalse(strpos($style, 'h1 {margin-top: 0.5pt; margin-bottom: 0.5pt;}'));
-        self::assertNotFalse(strpos($style, 'h2 {font-family: \'Times New Roman\'; font-style: italic;}'));
-        self::assertNotFalse(strpos($style, 'h2 {margin-top: 0.25pt; margin-bottom: 0.25pt;}'));
-        self::assertEquals(1, Helper::getLength($xpath, '/html/body/div/h1'));
-        self::assertEquals(2, Helper::getLength($xpath, '/html/body/div/h2'));
+        /** @var \PhpOffice\PhpWord\Element\Text $text */
+        $text = $title->getText()->getElement(2);
+        self::assertInstanceOf('PhpOffice\PhpWord\Element\Text', $text);
+        self::assertEquals(' but with parts not in bold', $text->getText());
     }
 }

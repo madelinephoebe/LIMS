@@ -15,123 +15,213 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\HTML;
+namespace PhpOffice\PhpWordTests\Style;
 
-use DOMXPath;
 use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Shared\Converter;
-use PhpOffice\PhpWord\Writer\HTML;
+use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\SimpleType\LineSpacingRule;
+use PhpOffice\PhpWord\Style\Paragraph;
+use PhpOffice\PhpWord\Style\Tab;
+use PhpOffice\PhpWordTests\TestHelperDOCX;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\HTML\Style\Font.
+ * Test class for PhpOffice\PhpWord\Style\Paragraph.
+ *
+ * @runTestsInSeparateProcesses
  */
 class ParagraphTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * Tests indentation, line-height, spaceBefore, spaceAfter, both inline and named.
+     * Tear down after each test.
      */
-    public function testParagraphStyles(): void
+    protected function tearDown(): void
     {
-        $phpWord = new PhpWord();
-        $pstyle1 = ['spaceBefore' => 0, 'spaceAfter' => 0, 'lineHeight' => 1.08];
-        $phpWord->addParagraphStyle('indented', [
-            'indentation' => ['left' => 0.50 * Converter::INCH_TO_TWIP, 'right' => 0.60 * Converter::INCH_TO_TWIP],
-        ]);
-        $text = 'This is a paragraph. It should be long enough to show the effects of indentation on both the right and left sides.';
-        $section1 = $phpWord->addSection();
-        $section1->addText($text, null, $pstyle1);
-        $section1->addText($text, null, 'indented');
-
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        self::assertEquals(0, Helper::getLength($xpath, '/html/body/div/p[1]/span'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[1]', 'class'));
-        self::assertEquals('margin-top: 0pt; margin-bottom: 0pt; line-height: 1.08;', Helper::getTextContent($xpath, '/html/body/div/p[1]', 'style'));
-        self::assertEquals(0, Helper::getLength($xpath, '/html/body/div/p[2]/span'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[2]', 'style'));
-        self::assertEquals('indented', Helper::getTextContent($xpath, '/html/body/div/p[2]', 'class'));
-
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        self::assertNotFalse(preg_match('/^[.]indented[^\\r\\n]*/m', $style, $matches));
-        self::assertEquals('.indented {margin-left: 0.5in; margin-right: 0.6in;}', $matches[0]);
+        TestHelperDOCX::clear();
     }
 
     /**
-     * Tests paragraph and font styles specified togeter, both inline and named.
+     * Test setting style values with null or empty value.
      */
-    public function testParagraphAndFontStyles(): void
+    public function testSetStyleValueWithNullOrEmpty(): void
     {
-        $phpWord = new PhpWord();
-        $pstyle1 = ['spaceBefore' => 0, 'spaceAfter' => 0, 'lineHeight' => 1.08];
-        $phpWord->addParagraphStyle('indented', [
-            'indentation' => ['left' => 0.50 * Converter::INCH_TO_TWIP, 'right' => 0.60 * Converter::INCH_TO_TWIP],
-        ]);
-        $phpWord->addFontStyle('style1', ['name' => 'Courier New', 'size' => 10, 'whiteSpace' => 'pre-wrap', 'fallbackFont' => 'monospace']);
-        $text = 'This is a paragraph. It should be long enough to show the effects of indentation on both the right and left sides.';
-        $section1 = $phpWord->addSection();
-        $section1->addText($text, 'style1', $pstyle1);
-        $section1->addText($text, ['name' => 'Verdana', 'size' => '12'], 'indented');
+        $object = new Paragraph();
 
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        self::assertEquals(1, Helper::getLength($xpath, '/html/body/div/p[1]/span'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[1]', 'class'));
-        self::assertEquals('margin-top: 0pt; margin-bottom: 0pt; line-height: 1.08;', Helper::getTextContent($xpath, '/html/body/div/p[1]', 'style'));
-        self::assertEquals('style1', Helper::getTextContent($xpath, '/html/body/div/p[1]/span', 'class'));
-        self::assertEquals(1, Helper::getLength($xpath, '/html/body/div/p[2]/span'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[2]', 'style'));
-        self::assertEquals('indented', Helper::getTextContent($xpath, '/html/body/div/p[2]', 'class'));
-        self::assertEquals('font-family: \'Verdana\'; font-size: 12pt;', Helper::getTextContent($xpath, '/html/body/div/p[2]/span', 'style'));
-
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        self::assertNotFalse(preg_match('/^[.]indented[^\\r\\n]*/m', $style, $matches));
-        self::assertEquals('.indented {margin-left: 0.5in; margin-right: 0.6in;}', $matches[0]);
-        self::assertNotFalse(preg_match('/^[.]style1[^\\r\\n]*/m', $style, $matches));
-        self::assertEquals('.style1 {font-family: \'Courier New\', monospace; font-size: 10pt; white-space: pre-wrap;}', $matches[0]);
+        $attributes = [
+            'widowControl' => true,
+            'keepNext' => false,
+            'keepLines' => false,
+            'pageBreakBefore' => false,
+            'contextualSpacing' => false,
+        ];
+        foreach ($attributes as $key => $default) {
+            $get = $this->findGetter($key, $default, $object);
+            $object->setStyleValue($key, null);
+            self::assertEquals($default, $object->$get());
+            $object->setStyleValue($key, '');
+            self::assertEquals($default, $object->$get());
+        }
     }
 
     /**
-     * Tests page break before.
+     * Test setting style values with normal value.
      */
-    public function testPageBreakBefore(): void
+    public function testSetStyleValueNormal(): void
     {
-        $phpWord = new PhpWord();
-        $pstyle1 = ['lineHeight' => 1.08];
-        $pstyle2 = ['lineHeight' => 1.08, 'pageBreakBefore' => true];
+        $object = new Paragraph();
 
-        $section1 = $phpWord->addSection();
-        $section1->addText('1st paragraph 1st page', null, $pstyle1);
-        $section1->addText('2nd paragraph 1st page', null, $pstyle1);
-        $section1->addText('1st paragraph 2nd page', null, $pstyle2);
-        $section1->addText('2nd paragraph 2nd page', null, $pstyle1);
-
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-        self::assertEquals('line-height: 1.08;', Helper::getTextContent($xpath, '/html/body/div/p[1]', 'style'));
-        self::assertEquals('line-height: 1.08;', Helper::getTextContent($xpath, '/html/body/div/p[2]', 'style'));
-        self::assertEquals('line-height: 1.08; page-break-before: always;', Helper::getTextContent($xpath, '/html/body/div/p[3]', 'style'));
-        self::assertEquals('line-height: 1.08;', Helper::getTextContent($xpath, '/html/body/div/p[4]', 'style'));
+        $attributes = [
+            'spaceAfter' => 240,
+            'spaceBefore' => 240,
+            'indent' => 1,
+            'hanging' => 1,
+            'spacing' => 120,
+            'spacingLineRule' => LineSpacingRule::AT_LEAST,
+            'basedOn' => 'Normal',
+            'next' => 'Normal',
+            'numStyle' => 'numStyle',
+            'numLevel' => 1,
+            'widowControl' => false,
+            'keepNext' => true,
+            'keepLines' => true,
+            'pageBreakBefore' => true,
+            'contextualSpacing' => true,
+            'textAlignment' => 'auto',
+            'bidi' => true,
+            'suppressAutoHyphens' => true,
+        ];
+        foreach ($attributes as $key => $value) {
+            $get = $this->findGetter($key, $value, $object);
+            $object->setStyleValue("$key", $value);
+            if (('indent' == $key || 'hanging' == $key) && is_numeric($value)) {
+                $value = $value * 720;
+            }
+            self::assertEquals($value, $object->$get());
+        }
     }
 
     /**
-     * Tests blank paragraph.
+     * @param string $key
+     * @param mixed $value
+     * @param object $object
+     *
+     * @return string
      */
-    public function testBlankParagraph(): void
+    private function findGetter($key, $value, $object)
+    {
+        if (is_bool($value)) {
+            if (method_exists($object, "is{$key}")) {
+                return "is{$key}";
+            } elseif (method_exists($object, "has{$key}")) {
+                return "has{$key}";
+            }
+        }
+
+        return "get{$key}";
+    }
+
+    /**
+     * Test get null style value.
+     */
+    public function testGetNullStyleValue(): void
+    {
+        $object = new Paragraph();
+
+        $attributes = ['spacing', 'indent', 'hanging', 'spaceBefore', 'spaceAfter', 'textAlignment'];
+        foreach ($attributes as $key) {
+            $get = $this->findGetter($key, null, $object);
+            self::assertNull($object->$get());
+        }
+    }
+
+    /**
+     * Test tabs.
+     */
+    public function testTabs(): void
+    {
+        $object = new Paragraph();
+        $object->setTabs([new Tab('left', 1550), new Tab('right', 5300)]);
+        self::assertCount(2, $object->getTabs());
+    }
+
+    /**
+     * Line height.
+     */
+    public function testLineHeight(): void
     {
         $phpWord = new PhpWord();
+        $section = $phpWord->addSection();
 
-        $section1 = $phpWord->addSection();
-        $section1->addText('Text before blank text');
-        $section1->addText('');
-        $section1->addText('Text after blank text');
+        // Test style array
+        $text = $section->addText('This is a test', [], ['line-height' => 2.0]);
 
-        $htmlWriter = new HTML($phpWord);
-        $body = $htmlWriter->getWriterPart('Body')->write();
-        $bodylines = explode(PHP_EOL, $body);
-        self::assertEquals('<p>Text before blank text</p>', $bodylines[2]);
-        self::assertEquals('<p>&nbsp;</p>', $bodylines[3]);
-        self::assertEquals('<p>Text after blank text</p>', $bodylines[4]);
+        $doc = TestHelperDOCX::getDocument($phpWord);
+        $element = $doc->getElement('/w:document/w:body/w:p/w:pPr/w:spacing');
+
+        $lineHeight = $element->getAttribute('w:line');
+        $lineRule = $element->getAttribute('w:lineRule');
+
+        self::assertEquals(480, $lineHeight);
+        self::assertEquals('auto', $lineRule);
+
+        // Test setter
+        $text->getParagraphStyle()->setLineHeight(3.0);
+        TestHelperDOCX::clear();
+        $doc = TestHelperDOCX::getDocument($phpWord);
+        $element = $doc->getElement('/w:document/w:body/w:p/w:pPr/w:spacing');
+
+        $lineHeight = $element->getAttribute('w:line');
+        $lineRule = $element->getAttribute('w:lineRule');
+
+        self::assertEquals(720, $lineHeight);
+        self::assertEquals('auto', $lineRule);
+    }
+
+    /**
+     * Test setLineHeight validation.
+     */
+    public function testLineHeightValidation(): void
+    {
+        $object = new Paragraph();
+        $object->setLineHeight('12.5pt');
+        self::assertEquals(12.5, $object->getLineHeight());
+    }
+
+    /**
+     * Test line height exception by using nonnumeric value.
+     */
+    public function testLineHeightException(): void
+    {
+        $this->expectException(\PhpOffice\PhpWord\Exception\InvalidStyleException::class);
+        $object = new Paragraph();
+        $object->setLineHeight('a');
+    }
+
+    public function testBidiVisual(): void
+    {
+        $object = new Paragraph();
+        self::assertNull($object->isBidi());
+        self::assertInstanceOf(Paragraph::class, $object->setBidi(true));
+        self::assertTrue($object->isBidi());
+        self::assertInstanceOf(Paragraph::class, $object->setBidi(false));
+        self::assertFalse($object->isBidi());
+        self::assertInstanceOf(Paragraph::class, $object->setBidi(null));
+        self::assertNull($object->isBidi());
+    }
+
+    public function testBidiVisualSettings(): void
+    {
+        Settings::setDefaultRtl(null);
+        $object = new Paragraph();
+        self::assertNull($object->isBidi());
+
+        Settings::setDefaultRtl(true);
+        $object = new Paragraph();
+        self::assertTrue($object->isBidi());
+
+        Settings::setDefaultRtl(false);
+        $object = new Paragraph();
+        self::assertFalse($object->isBidi());
+
+        Settings::setDefaultRtl(null);
     }
 }

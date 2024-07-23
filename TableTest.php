@@ -15,151 +15,97 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\HTML\Element;
+namespace PhpOffice\PhpWordTests\Element;
 
-use DOMXPath;
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Writer\HTML\Element\Table;
-use PhpOffice\PhpWordTests\Writer\HTML\Helper;
-use PHPUnit\Framework\TestCase;
+use PhpOffice\PhpWord\Element\Table;
 
-class TableTest extends TestCase
+/**
+ * Test class for PhpOffice\PhpWord\Element\Table.
+ *
+ * @coversDefaultClass \PhpOffice\PhpWord\Element\Table
+ *
+ * @runTestsInSeparateProcesses
+ */
+class TableTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * Tests writing table with border styles.
+     * Create new instance.
      */
-    public function testWriteTableBorders(): void
+    public function testConstruct(): void
     {
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
+        $oTable = new Table();
 
-        $bsnone = ['borderStyle' => 'none'];
-        $table1 = $section->addTable($bsnone);
-        $row1 = $table1->addRow();
-        $row1->addCell(null, $bsnone)->addText('Row 1 Cell 1');
-        $row1->addCell(null, $bsnone)->addText('Row 1 Cell 2');
-        $row2 = $table1->addRow();
-        $row2->addCell(null, $bsnone)->addText('Row 2 Cell 1');
-        $row2->addCell(null, $bsnone)->addText('Row 2 Cell 2');
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Table', $oTable);
+        self::assertNull($oTable->getStyle());
+        self::assertNull($oTable->getWidth());
+        self::assertEquals([], $oTable->getRows());
+        self::assertCount(0, $oTable->getRows());
+    }
 
-        $table1 = $section->addTable();
-        $row1 = $table1->addRow();
-        $row1->addCell()->addText('Row 1 Cell 1');
-        $row1->addCell()->addText('Row 1 Cell 2');
-        $row2 = $table1->addRow();
-        $row2->addCell()->addText('Row 2 Cell 1');
-        $row2->addCell()->addText('Row 2 Cell 2');
+    /**
+     * Get style name.
+     */
+    public function testStyleText(): void
+    {
+        $oTable = new Table('tableStyle');
 
-        $bstyle = ['borderStyle' => 'dashed', 'borderColor' => 'red'];
-        $table1 = $section->addTable($bstyle);
-        $row1 = $table1->addRow();
-        $row1->addCell(null, $bstyle)->addText('Row 1 Cell 1');
-        $row1->addCell(null, $bstyle)->addText('Row 1 Cell 2');
-        $row2 = $table1->addRow();
-        $row2->addCell(null, $bstyle)->addText('Row 2 Cell 1');
-        $row2->addCell(null, $bstyle)->addText('Row 2 Cell 2');
+        self::assertEquals('tableStyle', $oTable->getStyle());
+    }
 
-        $bstyle = [
-            'borderTopStyle' => 'dotted',
-            'borderLeftStyle' => 'dashed',
-            'borderRightStyle' => 'dashed',
-            'borderBottomStyle' => 'dotted',
-            'borderTopColor' => 'blue',
-            'borderLeftColor' => 'green',
-            'borderRightColor' => 'green',
-            'borderBottomColor' => 'blue',
-        ];
-        $table1 = $section->addTable($bstyle);
-        $row1 = $table1->addRow();
-        $row1->addCell(null, $bstyle)->addText('Row 1 Cell 1');
-        $row1->addCell(null, $bstyle)->addText('Row 1 Cell 2');
-        $row2 = $table1->addRow();
-        $row2->addCell(null, $bstyle)->addText('Row 2 Cell 1');
-        $row2->addCell(null, $bstyle)->addText('Row 2 Cell 2');
+    /**
+     * Get style array.
+     */
+    public function testStyleArray(): void
+    {
+        $oTable = new Table(['borderSize' => 6, 'borderColor' => '006699', 'cellMargin' => 80]);
 
-        $bstyle = ['borderStyle' => 'solid', 'borderSize' => 5];
-        $table1 = $section->addTable($bstyle);
-        $row1 = $table1->addRow();
-        $row1->addCell(null, $bstyle)->addText('Row 1 Cell 1');
-        $row1->addCell(null, $bstyle)->addText('Row 1 Cell 2');
-        $row2 = $table1->addRow();
-        $row2->addCell(null, $bstyle)->addText('Row 2 Cell 1');
-        $row2->addCell(null, $bstyle)->addText('Row 2 Cell 2');
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Style\\Table', $oTable->getStyle());
+    }
 
-        $phpWord->addTableStyle('tstyle', ['borderStyle' => 'solid', 'borderSize' => 5]);
-        $table1 = $section->addTable('tstyle');
-        $row1 = $table1->addRow();
-        $row1->addCell(null, 'tstyle')->addText('Row 1 Cell 1');
-        $row1->addCell(null, 'tstyle')->addText('Row 1 Cell 2');
-        $row2 = $table1->addRow();
-        $row2->addCell(null, 'tstyle')->addText('Row 2 Cell 1');
-        $row2->addCell(null, 'tstyle')->addText('Row 2 Cell 2');
+    /**
+     * Set/get width.
+     */
+    public function testWidth(): void
+    {
+        $oTable = new Table();
+        $iVal = mt_rand(1, 1000);
+        $oTable->setWidth($iVal);
+        self::assertEquals($iVal, $oTable->getWidth());
+    }
 
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
+    /**
+     * Add/get row.
+     */
+    public function testRow(): void
+    {
+        $oTable = new Table();
+        $element = $oTable->addRow();
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Row', $element);
+        self::assertCount(1, $oTable->getRows());
+    }
 
-        $cssnone = 'border-top-style: none;'
-            . ' border-left-style: none;'
-            . ' border-bottom-style: none;'
-            . ' border-right-style: none;';
-        self::assertEquals("table-layout: auto; $cssnone", Helper::getTextContent($xpath, '/html/body/div/table[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[1]/tr[1]/td[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[1]/tr[1]/td[2]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[1]/tr[2]/td[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[1]/tr[2]/td[2]', 'style'));
+    /**
+     * Add cell.
+     */
+    public function testCell(): void
+    {
+        $oTable = new Table();
+        $oTable->addRow();
+        $element = $oTable->addCell();
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Cell', $element);
+    }
 
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/table[2]', 'style'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/table[2]/tr[1]/td[1]', 'style'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/table[2]/tr[1]/td[2]', 'style'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/table[2]/tr[2]/td[1]', 'style'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/table[2]/tr[2]/td[2]', 'style'));
-
-        $cssnone = 'border-top-style: dashed;'
-            . ' border-top-color: red;'
-            . ' border-left-style: dashed;'
-            . ' border-left-color: red;'
-            . ' border-bottom-style: dashed;'
-            . ' border-bottom-color: red;'
-            . ' border-right-style: dashed;'
-            . ' border-right-color: red;';
-        self::assertEquals("table-layout: auto; $cssnone", Helper::getTextContent($xpath, '/html/body/div/table[3]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[3]/tr[1]/td[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[3]/tr[1]/td[2]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[3]/tr[2]/td[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[3]/tr[2]/td[2]', 'style'));
-
-        $cssnone = 'border-top-style: dotted;'
-            . ' border-top-color: blue;'
-            . ' border-left-style: dashed;'
-            . ' border-left-color: green;'
-            . ' border-bottom-style: dotted;'
-            . ' border-bottom-color: blue;'
-            . ' border-right-style: dashed;'
-            . ' border-right-color: green;';
-        self::assertEquals("table-layout: auto; $cssnone", Helper::getTextContent($xpath, '/html/body/div/table[4]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[4]/tr[1]/td[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[4]/tr[1]/td[2]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[4]/tr[2]/td[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[4]/tr[2]/td[2]', 'style'));
-
-        $cssnone = 'border-top-style: solid;'
-            . ' border-top-width: 0.25pt;'
-            . ' border-left-style: solid;'
-            . ' border-left-width: 0.25pt;'
-            . ' border-bottom-style: solid;'
-            . ' border-bottom-width: 0.25pt;'
-            . ' border-right-style: solid;'
-            . ' border-right-width: 0.25pt;';
-        self::assertEquals("table-layout: auto; $cssnone", Helper::getTextContent($xpath, '/html/body/div/table[5]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[5]/tr[1]/td[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[5]/tr[1]/td[2]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[5]/tr[2]/td[1]', 'style'));
-        self::assertEquals($cssnone, Helper::getTextContent($xpath, '/html/body/div/table[5]/tr[2]/td[2]', 'style'));
-
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/table[6]', 'style'));
-        self::assertEquals('tstyle', Helper::getTextContent($xpath, '/html/body/div/table[6]', 'class'));
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        self::assertNotFalse(preg_match('/^[.]tstyle[^\\r\\n]*/m', $style, $matches));
-        self::assertEquals(".tstyle {table-layout: auto; $cssnone}", $matches[0]);
+    /**
+     * Add cell.
+     */
+    public function testCountColumns(): void
+    {
+        $oTable = new Table();
+        $oTable->addRow();
+        $oTable->addCell();
+        self::assertEquals($oTable->countColumns(), 1);
+        $oTable->addCell();
+        $oTable->addCell();
+        self::assertEquals($oTable->countColumns(), 3);
     }
 }

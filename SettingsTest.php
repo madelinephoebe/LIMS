@@ -15,473 +15,229 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\Word2007\Part;
+namespace PhpOffice\PhpWordTests\Metadata;
 
+use InvalidArgumentException;
 use PhpOffice\PhpWord\ComplexType\ProofState;
-use PhpOffice\PhpWord\ComplexType\TrackChangesView;
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Shared\Microsoft\PasswordEncoder;
+use PhpOffice\PhpWord\Metadata\Protection;
+use PhpOffice\PhpWord\Metadata\Settings;
 use PhpOffice\PhpWord\SimpleType\Zoom;
-use PhpOffice\PhpWord\Style\Language;
-use PhpOffice\PhpWordTests\TestHelperDOCX;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\Word2007\Part\Settings.
+ * Test class for PhpOffice\PhpWord\Metadata\Settings.
  *
- * @coversDefaultClass \PhpOffice\PhpWord\Writer\Word2007\Part\Settings
+ * @runTestsInSeparateProcesses
  */
 class SettingsTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * Executed before each method of the class.
+     * EvenAndOddHeaders.
      */
-    protected function tearDown(): void
+    public function testSetEvenAndOddHeaders(): void
     {
-        TestHelperDOCX::clear();
+        $oSettings = new Settings();
+        $oSettings->setEvenAndOddHeaders(true);
+        self::assertTrue($oSettings->hasEvenAndOddHeaders());
     }
 
     /**
-     * Test document protection.
+     * HideGrammaticalErrors.
+     */
+    public function testHideGrammaticalErrors(): void
+    {
+        $oSettings = new Settings();
+        $oSettings->setHideGrammaticalErrors(true);
+        self::assertTrue($oSettings->hasHideGrammaticalErrors());
+    }
+
+    /**
+     * HideSpellingErrors.
+     */
+    public function testHideSpellingErrors(): void
+    {
+        $oSettings = new Settings();
+        $oSettings->setHideSpellingErrors(true);
+        self::assertTrue($oSettings->hasHideSpellingErrors());
+    }
+
+    /**
+     * DocumentProtection.
      */
     public function testDocumentProtection(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->getDocumentProtection()->setEditing('forms');
+        $oSettings = new Settings();
+        $oSettings->setDocumentProtection(new Protection('trackedChanges'));
+        self::assertNotNull($oSettings->getDocumentProtection());
 
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:documentProtection';
-        self::assertTrue($doc->elementExists($path, $file));
+        self::assertEquals('trackedChanges', $oSettings->getDocumentProtection()->getEditing());
     }
 
     /**
-     * Test document protection with password.
+     * Test setting an invalid salt.
      */
-    public function testDocumentProtectionWithPassword(): void
+    public function testInvalidSalt(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->getDocumentProtection()->setEditing('readOnly');
-        $phpWord->getSettings()->getDocumentProtection()->setPassword('testÄö@€!$&');
-        $phpWord->getSettings()->getDocumentProtection()->setSalt(base64_decode('uq81pJRRGFIY5U+E9gt8tA=='));
-        $phpWord->getSettings()->getDocumentProtection()->setAlgorithm(PasswordEncoder::ALGORITHM_MD2);
-        $phpWord->getSettings()->getDocumentProtection()->setSpinCount(10);
-        $sect = $phpWord->addSection();
-        $sect->addText('This is a protected document');
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:documentProtection';
-        self::assertTrue($doc->elementExists($path, $file));
-        self::assertEquals('rUuJbk6LuN2/qFyp7IUPQA==', $doc->getElement($path, $file)->getAttribute('w:hash'));
-        self::assertEquals('1', $doc->getElement($path, $file)->getAttribute('w:cryptAlgorithmSid'));
-        self::assertEquals('10', $doc->getElement($path, $file)->getAttribute('w:cryptSpinCount'));
+        $this->expectException(InvalidArgumentException::class);
+        $protection = new Protection();
+        $protection->setSalt('123');
     }
 
     /**
-     * Test document protection with password without setting salt.
+     * TrackRevistions.
      */
-    public function testDocumentProtectionWithPasswordNoSalt(): void
+    public function testTrackRevisions(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->getDocumentProtection()->setEditing('readOnly');
-        $phpWord->getSettings()->getDocumentProtection()->setPassword('testÄö@€!$&');
-        //$phpWord->getSettings()->getDocumentProtection()->setSalt(base64_decode('uq81pJRRGFIY5U+E9gt8tA=='));
-        $phpWord->getSettings()->getDocumentProtection()->setAlgorithm(PasswordEncoder::ALGORITHM_MD2);
-        $phpWord->getSettings()->getDocumentProtection()->setSpinCount(10);
-        $sect = $phpWord->addSection();
-        $sect->addText('This is a protected document');
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:documentProtection';
-        self::assertTrue($doc->elementExists($path, $file));
-        //$this->assertEquals('rUuJbk6LuN2/qFyp7IUPQA==', $doc->getElement($path, $file)->getAttribute('w:hash'));
-        self::assertEquals('1', $doc->getElement($path, $file)->getAttribute('w:cryptAlgorithmSid'));
-        self::assertEquals('10', $doc->getElement($path, $file)->getAttribute('w:cryptSpinCount'));
+        $oSettings = new Settings();
+        $oSettings->setTrackRevisions(true);
+        self::assertTrue($oSettings->hasTrackRevisions());
     }
 
     /**
-     * Test compatibility.
+     * DoNotTrackFormatting.
      */
-    public function testCompatibility(): void
+    public function testDoNotTrackFormatting(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getCompatibility()->setOoxmlVersion(15);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:compat/w:compatSetting';
-        self::assertTrue($doc->elementExists($path, $file));
-        self::assertEquals($phpWord->getCompatibility()->getOoxmlVersion(), 15);
+        $oSettings = new Settings();
+        $oSettings->setDoNotTrackFormatting(true);
+        self::assertTrue($oSettings->hasDoNotTrackFormatting());
     }
 
     /**
-     * Test language.
+     * DoNotTrackMoves.
      */
-    public function testDefaultLanguage(): void
+    public function testDoNotTrackMoves(): void
     {
-        $phpWord = new PhpWord();
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:themeFontLang';
-        self::assertTrue($doc->elementExists($path, $file));
-        $element = $doc->getElement($path, $file);
-
-        self::assertEquals('en-US', $element->getAttribute('w:val'));
+        $oSettings = new Settings();
+        $oSettings->setDoNotTrackMoves(true);
+        self::assertTrue($oSettings->hasDoNotTrackMoves());
     }
 
     /**
-     * Test language.
-     */
-    public function testLanguage(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setThemeFontLang(new Language(Language::DE_DE, Language::KO_KR, Language::HE_IL));
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:themeFontLang';
-        self::assertTrue($doc->elementExists($path, $file));
-        $element = $doc->getElement($path, $file);
-
-        self::assertEquals(Language::DE_DE, $element->getAttribute('w:val'));
-        self::assertEquals(Language::KO_KR, $element->getAttribute('w:eastAsia'));
-        self::assertEquals(Language::HE_IL, $element->getAttribute('w:bidi'));
-    }
-
-    /**
-     * Test proofState.
+     * ProofState.
      */
     public function testProofState(): void
     {
         $proofState = new ProofState();
+        $proofState->setGrammar(ProofState::CLEAN);
         $proofState->setSpelling(ProofState::DIRTY);
-        $proofState->setGrammar(ProofState::DIRTY);
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setProofState($proofState);
 
-        $doc = TestHelperDOCX::getDocument($phpWord);
+        $oSettings = new Settings();
+        $oSettings->setProofState($proofState);
+        self::assertNotNull($oSettings->getProofState());
+        self::assertEquals(ProofState::CLEAN, $oSettings->getProofState()->getGrammar());
+        self::assertEquals(ProofState::DIRTY, $oSettings->getProofState()->getSpelling());
+    }
 
-        $file = 'word/settings.xml';
+    public function testWrongProofStateGrammar(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $proofState = new ProofState();
+        $proofState->setGrammar('wrong');
+    }
 
-        $path = '/w:settings/w:proofState';
-        self::assertTrue($doc->elementExists($path, $file));
-        $element = $doc->getElement($path, $file);
-
-        self::assertEquals('dirty', $element->getAttribute('w:spelling'));
-        self::assertEquals('dirty', $element->getAttribute('w:grammar'));
+    public function testWrongProofStateSpelling(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $proofState = new ProofState();
+        $proofState->setSpelling('wrong');
     }
 
     /**
-     * Test spelling.
-     */
-    public function testSpelling(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setHideSpellingErrors(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:hideSpellingErrors';
-        self::assertTrue($doc->elementExists($path, $file));
-        $element = $doc->getElement($path, $file);
-
-        self::assertSame('true', $element->getAttribute('w:val'));
-    }
-
-    /**
-     * Test even and odd headers.
-     */
-    public function testEvenAndOddHeaders(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setEvenAndOddHeaders(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:evenAndOddHeaders';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
-    }
-
-    public function testUpdateFields(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setUpdateFields(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:updateFields';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
-    }
-
-    /**
-     * Test zoom percentage.
+     * Zoom as percentage.
      */
     public function testZoomPercentage(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setZoom(75);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:zoom';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertEquals('75', $element->getAttribute('w:percent'));
+        $oSettings = new Settings();
+        $oSettings->setZoom(75);
+        self::assertEquals(75, $oSettings->getZoom());
     }
 
     /**
-     * Test zoom value.
+     * Zoom as string.
      */
-    public function testZoomValue(): void
+    public function testZoomEnum(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setZoom(Zoom::FULL_PAGE);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:zoom';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertEquals('fullPage', $element->getAttribute('w:val'));
-    }
-
-    public function testMirrorMargins(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setMirrorMargins(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:mirrorMargins';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
+        $oSettings = new Settings();
+        $oSettings->setZoom(Zoom::FULL_PAGE);
+        self::assertEquals('fullPage', $oSettings->getZoom());
     }
 
     /**
-     * Test Revision View.
+     * Test Update Fields on update.
      */
-    public function testRevisionView(): void
+    public function testUpdateFields(): void
     {
-        $trackChangesView = new TrackChangesView();
-        $trackChangesView->setFormatting(false);
-        $trackChangesView->setComments(true);
-
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setRevisionView($trackChangesView);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:revisionView';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertEquals('false', $element->getAttribute('w:formatting'));
-        self::assertEquals('true', $element->getAttribute('w:comments'));
-    }
-
-    public function testHideSpellingErrors(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setHideSpellingErrors(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:hideSpellingErrors';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
-    }
-
-    public function testHideGrammaticalErrors(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setHideGrammaticalErrors(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:hideGrammaticalErrors';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
-    }
-
-    /**
-     * Test track Revisions.
-     */
-    public function testTrackRevisions(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setTrackRevisions(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:trackRevisions';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
-    }
-
-    /**
-     * Test doNotTrackMoves.
-     */
-    public function testDoNotTrackMoves(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setDoNotTrackMoves(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:doNotTrackMoves';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
-    }
-
-    /**
-     * Test DoNotTrackFormatting.
-     */
-    public function testDoNotTrackFormatting(): void
-    {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setDoNotTrackFormatting(true);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:doNotTrackFormatting';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
+        $oSettings = new Settings();
+        $oSettings->setUpdateFields(true);
+        self::assertTrue($oSettings->hasUpdateFields());
     }
 
     public function testAutoHyphenation(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setAutoHyphenation(true);
+        $oSettings = new Settings();
+        $oSettings->setAutoHyphenation(true);
+        self::assertTrue($oSettings->hasAutoHyphenation());
+    }
 
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:autoHyphenation';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
+    public function testDefaultAutoHyphenation(): void
+    {
+        $oSettings = new Settings();
+        self::assertNull($oSettings->hasAutoHyphenation());
     }
 
     public function testConsecutiveHyphenLimit(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setConsecutiveHyphenLimit(2);
+        $consecutiveHypenLimit = 2;
+        $oSettings = new Settings();
+        $oSettings->setConsecutiveHyphenLimit($consecutiveHypenLimit);
+        self::assertSame($consecutiveHypenLimit, $oSettings->getConsecutiveHyphenLimit());
+    }
 
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:consecutiveHyphenLimit';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('2', $element->getAttribute('w:val'));
+    public function testDefaultConsecutiveHyphenLimit(): void
+    {
+        $oSettings = new Settings();
+        self::assertNull($oSettings->getConsecutiveHyphenLimit());
     }
 
     public function testHyphenationZone(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setHyphenationZone(100);
+        $hyphenationZoneInTwip = 100;
+        $oSettings = new Settings();
+        $oSettings->setHyphenationZone($hyphenationZoneInTwip);
+        self::assertSame($hyphenationZoneInTwip, $oSettings->getHyphenationZone());
+    }
 
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:hyphenationZone';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('100', $element->getAttribute('w:val'));
+    public function testDefaultHyphenationZone(): void
+    {
+        $oSettings = new Settings();
+        self::assertNull($oSettings->getHyphenationZone());
     }
 
     public function testDoNotHyphenateCaps(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setDoNotHyphenateCaps(true);
+        $oSettings = new Settings();
+        $oSettings->setDoNotHyphenateCaps(true);
+        self::assertTrue($oSettings->hasDoNotHyphenateCaps());
+    }
 
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:doNotHyphenateCaps';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
+    public function testDefaultDoNotHyphenateCaps(): void
+    {
+        $oSettings = new Settings();
+        self::assertNull($oSettings->hasDoNotHyphenateCaps());
     }
 
     public function testBookFoldPrinting(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setBookFoldPrinting(true);
+        $oSettings = new Settings();
+        self::assertInstanceOf(Settings::class, $oSettings->setBookFoldPrinting(true));
+        self::assertTrue($oSettings->hasBookFoldPrinting());
+        self::assertInstanceOf(Settings::class, $oSettings->setBookFoldPrinting(false));
+        self::assertFalse($oSettings->hasBookFoldPrinting());
+    }
 
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        $file = 'word/settings.xml';
-
-        $path = '/w:settings/w:bookFoldPrinting';
-        self::assertTrue($doc->elementExists($path, $file));
-
-        $element = $doc->getElement($path, $file);
-        self::assertSame('true', $element->getAttribute('w:val'));
+    public function testDefaultBookFoldPrinting(): void
+    {
+        $oSettings = new Settings();
+        self::assertFalse($oSettings->hasBookFoldPrinting());
     }
 }

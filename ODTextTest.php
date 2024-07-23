@@ -15,134 +15,53 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer;
+namespace PhpOffice\PhpWordTests\Reader;
 
+use PhpOffice\Math\Element;
+use PhpOffice\PhpWord\Element\Formula;
+use PhpOffice\PhpWord\Element\Section;
+use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\Writer\ODText;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\ODText.
+ * Test class for PhpOffice\PhpWord\Reader\ODText.
+ *
+ * @coversDefaultClass \PhpOffice\PhpWord\Reader\ODText
  *
  * @runTestsInSeparateProcesses
  */
 class ODTextTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * Construct.
+     * Load.
      */
-    public function testConstruct(): void
+    public function testLoad(): void
     {
-        $object = new ODText(new PhpWord());
-
-        self::assertInstanceOf('PhpOffice\\PhpWord\\PhpWord', $object->getPhpWord());
-
-        self::assertEquals('./', $object->getDiskCachingDirectory());
-        foreach (['Content', 'Manifest', 'Meta', 'Mimetype', 'Styles'] as $part) {
-            self::assertInstanceOf(
-                "PhpOffice\\PhpWord\\Writer\\ODText\\Part\\{$part}",
-                $object->getWriterPart($part)
-            );
-            self::assertInstanceOf(
-                'PhpOffice\\PhpWord\\Writer\\ODText',
-                $object->getWriterPart($part)->getParentWriter()
-            );
-        }
+        $phpWord = IOFactory::load(dirname(__DIR__, 1) . '/_files/documents/reader.odt', 'ODText');
+        self::assertInstanceOf(PhpWord::class, $phpWord);
     }
 
-    /**
-     * Construct with null.
-     */
-    public function testConstructWithNull(): void
+    public function testLoadFormula(): void
     {
-        $this->expectException(\PhpOffice\PhpWord\Exception\Exception::class);
-        $this->expectExceptionMessage('No PhpWord assigned.');
-        $object = new ODText();
-        $object->getPhpWord();
-    }
+        $phpWord = IOFactory::load(dirname(__DIR__, 1) . '/_files/documents/reader-formula.odt', 'ODText');
 
-    /**
-     * Save.
-     */
-    public function testSave(): void
-    {
-        $imageSrc = __DIR__ . '/../_files/images/PhpWord.png';
-        $objectSrc = __DIR__ . '/../_files/documents/sheet.xls';
-        $file = __DIR__ . '/../_files/temp.odt';
+        self::assertInstanceOf(PhpWord::class, $phpWord);
 
-        $phpWord = new PhpWord();
-        $phpWord->addFontStyle('Font', ['size' => 11]);
-        $phpWord->addParagraphStyle('Paragraph', ['alignment' => Jc::CENTER]);
-        $section = $phpWord->addSection();
-        $section->addText('Test 1', 'Font');
-        $section->addTextBreak();
-        $section->addText('Test 2', null, 'Paragraph');
-        $section->addLink('https://github.com/PHPOffice/PHPWord');
-        $section->addTitle('Test', 1);
-        $section->addPageBreak();
-        $section->addTable()->addRow()->addCell()->addText('Test');
-        $section->addListItem('Test');
-        $section->addImage($imageSrc);
-        $section->addObject($objectSrc);
-        $section->addTOC();
-        $section = $phpWord->addSection();
-        $textrun = $section->addTextRun();
-        $textrun->addText('Test 3');
-        $writer = new ODText($phpWord);
-        $writer->save($file);
+        $sections = $phpWord->getSections();
+        self::assertCount(1, $sections);
 
-        self::assertFileExists($file);
+        $section = $sections[0];
+        self::assertInstanceOf(Section::class, $section);
 
-        unlink($file);
-    }
+        $elements = $section->getElements();
+        self::assertCount(1, $elements);
 
-    /**
-     * Save php output.
-     *
-     * @todo   Haven't got any method to test this
-     */
-    public function testSavePhpOutput(): void
-    {
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        $section->addText('Test');
-        $writer = new ODText($phpWord);
-        ob_start();
-        $writer->save('php://output');
-        $contents = ob_get_contents();
-        self::assertTrue(ob_end_clean());
-        self::assertNotEmpty($contents);
-    }
+        $element = $elements[0];
+        self::assertInstanceOf(Formula::class, $element);
 
-    /**
-     * Get writer part return null value.
-     */
-    public function testGetWriterPartNull(): void
-    {
-        $object = new ODText();
-        self::assertNull($object->getWriterPart('foo'));
-    }
+        $elements = $element->getMath()->getElements();
+        self::assertCount(1, $elements);
 
-    /**
-     * Set/get use disk caching.
-     */
-    public function testSetGetUseDiskCaching(): void
-    {
-        $object = new ODText();
-        $object->setUseDiskCaching(true, PHPWORD_TESTS_BASE_DIR);
-        self::assertTrue($object->isUseDiskCaching());
-        self::assertEquals(PHPWORD_TESTS_BASE_DIR, $object->getDiskCachingDirectory());
-    }
-
-    /**
-     * Use disk caching exception.
-     */
-    public function testSetUseDiskCachingException(): void
-    {
-        $this->expectException(\PhpOffice\PhpWord\Exception\Exception::class);
-        $dir = implode(DIRECTORY_SEPARATOR, [PHPWORD_TESTS_BASE_DIR, 'foo']);
-
-        $object = new ODText();
-        $object->setUseDiskCaching(true, $dir);
+        self::assertInstanceOf(Element\Semantics::class, $elements[0]);
     }
 }

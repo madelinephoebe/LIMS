@@ -15,235 +15,209 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\ODText\Style;
+namespace PhpOffice\PhpWordTests\Element;
 
+use Exception;
+use PhpOffice\PhpWord\Element\Header;
+use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWordTests\TestHelperDOCX;
+use PhpOffice\PhpWord\Style;
+use PhpOffice\PhpWord\Style\Section as SectionStyle;
 
 /**
- * Test class for Headers, Footers, Tabs in ODT.
+ * @covers \PhpOffice\PhpWord\Element\Section
+ *
+ * @coversDefaultClass \PhpOffice\PhpWord\Element\Section
+ *
+ * @runTestsInSeparateProcesses
  */
 class SectionTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * Executed after each method of the class.
-     */
-    protected function tearDown(): void
+    public function testConstructorWithDefaultStyle(): void
     {
-        TestHelperDOCX::clear();
+        $section = new Section(0);
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Style\\Section', $section->getStyle());
+    }
+
+    public function testConstructorWithArrayStyle(): void
+    {
+        $section = new Section(0, ['orientation' => 'landscape']);
+        $style = $section->getStyle();
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Style\\Section', $style);
+        self::assertEquals('landscape', $style->getOrientation());
+    }
+
+    public function testConstructorWithObjectStyle(): void
+    {
+        $style = new SectionStyle();
+        $section = new Section(0, $style);
+        self::assertSame($style, $section->getStyle());
     }
 
     /**
-     * Test various section styles, including header, footer, and tabs.
+     * @covers ::setStyle
      */
-    public function testHeaderFooterTabs(): void
+    public function testSetStyle(): void
     {
-        $phpWord = new \PhpOffice\PhpWord\PhpWord();
-        $margins = \PhpOffice\PhpWord\Shared\Converter::INCH_TO_TWIP;
-        $phpWord->addFontStyle('hdrstyle1', ['name' => 'Courier New', 'size' => 8]);
-        $section = $phpWord->addSection(['paperSize' => 'Letter', 'marginTop' => $margins, 'marginBottom' => $margins]);
-        $header = $section->addHeader();
-        $phpWord->addParagraphStyle('centerheader', ['align' => 'center']);
-        $header->addText('Centered Header', 'hdrstyle1', 'centerheader');
-        $footer = $section->addFooter();
-        $sizew = $section->getStyle()->getPageSizeW();
-        $sizel = $section->getStyle()->getMarginLeft();
-        $sizer = $section->getStyle()->getMarginRight();
-        $footerwidth = $sizew - $sizel - $sizer;
-        $phpWord->addParagraphStyle(
-            'footerTab',
-            [
-                'tabs' => [
-                    new \PhpOffice\PhpWord\Style\Tab('center', (int) ($footerwidth / 2)),
-                    new \PhpOffice\PhpWord\Style\Tab('right', (int) $footerwidth),
-                ],
-            ]
-        );
-        $textrun = $footer->addTextRun('footerTab');
-        $textrun->addText('Left footer', 'hdrstyle1');
-        $textrun->addText("\t", 'hdrstyle1');
-        $fld = $textrun->addField('DATE');
-        $fld->setFontStyle('hdrstyle1');
-        $textrun->addText("\t", 'hdrstyle1');
-        $textrun->addText('Page ', 'hdrstyle1');
-        $fld = $textrun->addField('PAGE');
-        $fld->setFontStyle('hdrstyle1');
-        $textrun->addText(' of ', 'hdrstyle1');
-        $fld = $textrun->addField('NUMPAGES');
-        $fld->setFontStyle('hdrstyle1');
-        $section->addText('First page');
+        $expected = 'landscape';
+        $object = new Section(0);
+        $object->setStyle(['orientation' => $expected, 'foo' => null]);
+        self::assertEquals($expected, $object->getStyle()->getOrientation());
+    }
+
+    /**
+     * @coversNothing
+     */
+    public function testAddElements(): void
+    {
+        $objectSource = __DIR__ . '/../_files/documents/reader.docx';
+        $imageSource = __DIR__ . '/../_files/images/PhpWord.png';
+
+        $section = new Section(0);
+        $section->setPhpWord(new PhpWord());
+        $section->addText(utf8decode('ä'));
+        $section->addLink(utf8decode('http://äää.com'), utf8decode('ä'));
+        $section->addTextBreak();
         $section->addPageBreak();
-        $section->addText('Second page');
-        $section->addPageBreak();
-        $section->addText('Third page');
+        $section->addTable();
+        $section->addListItem(utf8decode('ä'));
+        $section->addObject($objectSource);
+        $section->addImage($imageSource);
+        $section->addTitle(utf8decode('ä'), 1);
+        $section->addTextRun();
+        $section->addFootnote();
+        $section->addCheckBox(utf8decode('chkä'), utf8decode('Contentä'));
+        $section->addTOC();
 
-        $doc = TestHelperDOCX::getDocument($phpWord, 'ODText');
-        $doc->setDefaultFile('styles.xml');
-        $s2a = '/office:document-styles/office:automatic-styles';
-        $element = "$s2a/style:page-layout/style:page-layout-properties";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('8.5in', $doc->getElementAttribute($element, 'fo:page-width'));
-        self::assertEquals('11in', $doc->getElementAttribute($element, 'fo:page-height'));
-        self::assertEquals('0.5in', $doc->getElementAttribute($element, 'fo:margin-top'));
-        self::assertEquals('0.5in', $doc->getElementAttribute($element, 'fo:margin-bottom'));
-
-        $s2s = '/office:document-styles/office:styles';
-        $element = "$s2s/style:style[1]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('hdrstyle1', $doc->getElementAttribute($element, 'style:name'));
-        $tprop = "$element/style:text-properties";
-        self::assertTrue($doc->elementExists($tprop));
-        self::assertEquals('Courier New', $doc->getElementAttribute($tprop, 'style:font-name'));
-
-        $element = "$s2s/style:style[2]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('centerheader', $doc->getElementAttribute($element, 'style:name'));
-        $tprop = "$element/style:paragraph-properties";
-        self::assertTrue($doc->elementExists($tprop));
-        self::assertEquals('center', $doc->getElementAttribute($tprop, 'fo:text-align'));
-
-        $element = "$s2s/style:style[3]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('footerTab', $doc->getElementAttribute($element, 'style:name'));
-        $tprop = "$element/style:paragraph-properties/style:tab-stops";
-        self::assertTrue($doc->elementExists($tprop));
-        $tstop = "$tprop/style:tab-stop[1]";
-        self::assertTrue($doc->elementExists($tstop));
-        self::assertEquals('center', $doc->getElementAttribute($tstop, 'style:type'));
-        self::assertEquals('3.25in', $doc->getElementAttribute($tstop, 'style:position'));
-        $tstop = "$tprop/style:tab-stop[2]";
-        self::assertTrue($doc->elementExists($tstop));
-        self::assertEquals('right', $doc->getElementAttribute($tstop, 'style:type'));
-        self::assertEquals('6.5in', $doc->getElementAttribute($tstop, 'style:position'));
-
-        $s2s = '/office:document-styles/office:master-styles/style:master-page/style:footer/text:p';
-        self::assertTrue($doc->elementExists($s2s));
-        $element = "$s2s/text:span[1]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('hdrstyle1', $doc->getElementAttribute($element, 'text:style-name'));
-        self::assertEquals('Left footer', $doc->getElement($element)->nodeValue);
-        $element = "$s2s/text:span[2]/text:tab";
-        self::assertTrue($doc->elementExists($element));
-        $element = "$s2s/text:span[3]/text:date";
-        self::assertTrue($doc->elementExists($element));
-        $element = "$s2s/text:span[4]/text:tab";
-        self::assertTrue($doc->elementExists($element));
-        $element = "$s2s/text:span[5]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('Page', $doc->getElement($element)->nodeValue);
-        self::assertTrue($doc->elementExists("$element/text:s"));
-        $element = "$s2s/text:span[6]/text:page-number";
-        self::assertTrue($doc->elementExists($element));
-        $element = "$s2s/text:span[7]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('of', $doc->getElement($element)->nodeValue);
-        self::assertTrue($doc->elementExists("$element/text:s"));
-        self::assertTrue($doc->elementExists("$element/text:s[2]"));
-        $element = "$s2s/text:span[8]/text:page-count";
-        self::assertTrue($doc->elementExists($element));
+        $elementCollection = $section->getElements();
+        $elementTypes = [
+            'Text',
+            'Link',
+            'TextBreak',
+            'PageBreak',
+            'Table',
+            'ListItem',
+            'OLEObject',
+            'Image',
+            'Title',
+            'TextRun',
+            'Footnote',
+            'CheckBox',
+            'TOC',
+        ];
+        $elmCount = 0;
+        foreach ($elementTypes as $elementType) {
+            self::assertInstanceOf("PhpOffice\\PhpWord\\Element\\{$elementType}", $elementCollection[$elmCount]);
+            ++$elmCount;
+        }
     }
 
     /**
-     * Test HideErrors.
+     * @coversNothing
      */
-    public function testHideErrors(): void
+    public function testAddObjectException(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->getSettings()->setHideGrammaticalErrors(true);
-        $phpWord->getSettings()->setHideSpellingErrors(true);
-        $phpWord->getSettings()->setThemeFontLang(new \PhpOffice\PhpWord\Style\Language('en-US'));
-        $phpWord->getSettings()->getThemeFontLang()->setLangId(\PhpOffice\PhpWord\Style\Language::EN_US_ID);
-        $section = $phpWord->addSection();
-        $section->addText('Here is a paragraph with some speling errorz');
-
-        $doc = TestHelperDOCX::getDocument($phpWord, 'ODText');
-        $doc->setDefaultFile('styles.xml');
-        $element = '/office:document-styles/office:styles/style:default-style/style:text-properties';
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('zxx', $doc->getElementAttribute($element, 'fo:language'));
-        self::assertEquals('zxx', $doc->getElementAttribute($element, 'style:language-asian'));
-        self::assertEquals('zxx', $doc->getElementAttribute($element, 'style:language-complex'));
-        self::assertEquals('none', $doc->getElementAttribute($element, 'fo:country'));
-        self::assertEquals('none', $doc->getElementAttribute($element, 'style:country-asian'));
-        self::assertEquals('none', $doc->getElementAttribute($element, 'style:country-complex'));
+        $this->expectException(\PhpOffice\PhpWord\Exception\InvalidObjectException::class);
+        $source = __DIR__ . '/_files/xsl/passthrough.xsl';
+        $section = new Section(0);
+        $section->addObject($source);
     }
 
     /**
-     * Test SpaceBeforeAfter.
+     * Add title with predefined style.
+     *
+     * @coversNothing
      */
-    public function testMultipleSections(): void
+    public function testAddTitleWithStyle(): void
     {
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection(['paperSize' => 'Letter', 'Orientation' => 'portrait']);
-        $section->addText('This section uses Letter paper in portrait orientation.');
-        $section = $phpWord->addSection(['paperSize' => 'A4', 'Orientation' => 'landscape', 'pageNumberingStart' => '9']);
-        $header = $section->addHeader();
-        $header->addField('PAGE');
-        $section->addText('This section uses A4 paper in landscape orientation. It should have a page break beforehand. It artificially starts on page 9.');
+        Style::addTitleStyle(1, ['size' => 14]);
+        $section = new Section(0);
+        $section->setPhpWord(new PhpWord());
+        $section->addTitle('Test', 1);
+        $elementCollection = $section->getElements();
 
-        $doc = TestHelperDOCX::getDocument($phpWord, 'ODText');
-        $s2a = '/office:document-content/office:automatic-styles';
-        $s2t = '/office:document-content/office:body/office:text';
-        self::assertTrue($doc->elementExists($s2a));
-        self::assertTrue($doc->elementExists($s2t));
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Title', $elementCollection[0]);
+    }
 
-        $element = "$s2a/style:style[2]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('SB1', $doc->getElementAttribute($element, 'style:name'));
-        self::assertEquals('Standard1', $doc->getElementAttribute($element, 'style:master-page-name'));
-        $element .= '/style:text-properties';
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('none', $doc->getElementAttribute($element, 'text:display'));
-        $element = "$s2a/style:style[3]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('SB2', $doc->getElementAttribute($element, 'style:name'));
-        self::assertEquals('Standard2', $doc->getElementAttribute($element, 'style:master-page-name'));
-        $elemen2 = "$element/style:paragraph-properties";
-        self::assertEquals('9', $doc->getElementAttribute($elemen2, 'style:page-number'));
-        $element .= '/style:text-properties';
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('none', $doc->getElementAttribute($element, 'text:display'));
+    /**
+     * @covers ::addFooter
+     * @covers ::addHeader
+     * @covers ::hasDifferentFirstPage
+     */
+    public function testAddHeaderFooter(): void
+    {
+        $object = new Section(0);
+        $elements = ['Header', 'Footer'];
 
-        $element = "$s2t/text:section[1]";
-        self::assertTrue($doc->elementExists($element));
-        $element .= '/text:p[1]';
-        self::assertEquals('SB1', $doc->getElementAttribute($element, 'text:style-name'));
-        $element = "$s2t/text:section[2]";
-        self::assertTrue($doc->elementExists($element));
-        $element .= '/text:p[1]';
-        self::assertEquals('SB2', $doc->getElementAttribute($element, 'text:style-name'));
+        foreach ($elements as $element) {
+            $method = "add{$element}";
+            self::assertInstanceOf("PhpOffice\\PhpWord\\Element\\{$element}", $object->$method());
+        }
+        self::assertFalse($object->hasDifferentFirstPage());
+    }
 
-        $doc->setDefaultFile('styles.xml');
-        $s2a = '/office:document-styles/office:automatic-styles';
-        self::assertTrue($doc->elementExists($s2a));
+    /**
+     * @covers ::addHeader
+     * @covers ::hasDifferentFirstPage
+     */
+    public function testHasDifferentFirstPageFooter(): void
+    {
+        $object = new Section(1);
+        $object->addFooter(Header::FIRST);
+        self::assertTrue($object->hasDifferentFirstPage());
+    }
 
-        $element = "$s2a/style:page-layout[1]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('Mpm1', $doc->getElementAttribute($element, 'style:name'));
-        $element .= '/style:page-layout-properties';
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('8.5in', $doc->getElementAttribute($element, 'fo:page-width'));
-        self::assertEquals('11in', $doc->getElementAttribute($element, 'fo:page-height'));
-        self::assertEquals('portrait', $doc->getElementAttribute($element, 'style:print-orientation'));
+    /**
+     * @covers ::addHeader
+     * @covers ::hasDifferentFirstPage
+     */
+    public function testHasDifferentFirstPage(): void
+    {
+        $object = new Section(1);
+        $header = $object->addHeader();
+        $header->setType(Header::FIRST);
+        self::assertTrue($object->hasDifferentFirstPage());
+    }
 
-        $element = "$s2a/style:page-layout[2]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('Mpm2', $doc->getElementAttribute($element, 'style:name'));
-        $element .= '/style:page-layout-properties';
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('29.7cm', $doc->getElementAttribute($element, 'fo:page-width'));
-        self::assertEquals('21cm', $doc->getElementAttribute($element, 'fo:page-height'));
-        self::assertEquals('landscape', $doc->getElementAttribute($element, 'style:print-orientation'));
+    /**
+     * @covers ::addHeader
+     */
+    public function testAddHeaderException(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Invalid header/footer type.');
+        $object = new Section(1);
+        $object->addHeader('ODD');
+    }
 
-        $s2a = '/office:document-styles/office:master-styles';
-        self::assertTrue($doc->elementExists($s2a));
-        $element = "$s2a/style:master-page[1]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('Standard1', $doc->getElementAttribute($element, 'style:name'));
-        self::assertEquals('Mpm1', $doc->getElementAttribute($element, 'style:page-layout-name'));
-        $element = "$s2a/style:master-page[2]";
-        self::assertTrue($doc->elementExists($element));
-        self::assertEquals('Standard2', $doc->getElementAttribute($element, 'style:name'));
-        self::assertEquals('Mpm2', $doc->getElementAttribute($element, 'style:page-layout-name'));
+    /**
+     * @covers \PhpOffice\PhpWord\Element\AbstractContainer::removeElement
+     */
+    public function testRemoveElementByIndex(): void
+    {
+        $section = new Section(1);
+        $section->addText('firstText');
+        $section->addText('secondText');
+
+        self::assertEquals(2, $section->countElements());
+        $section->removeElement(1);
+
+        self::assertEquals(1, $section->countElements());
+    }
+
+    /**
+     * @covers \PhpOffice\PhpWord\Element\AbstractContainer::removeElement
+     */
+    public function testRemoveElementByElement(): void
+    {
+        $section = new Section(1);
+        $firstText = $section->addText('firstText');
+        $secondText = $section->addText('secondText');
+
+        self::assertEquals(2, $section->countElements());
+        $section->removeElement($firstText);
+
+        self::assertEquals(1, $section->countElements());
+        self::assertEquals($secondText->getElementId(), $section->getElement(1)->getElementId());
     }
 }

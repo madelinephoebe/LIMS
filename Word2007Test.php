@@ -15,22 +15,30 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer;
+namespace PhpOffice\PhpWordTests\Reader;
 
-use finfo;
+use DateTime;
+use PhpOffice\Math\Element;
+use PhpOffice\PhpWord\Element\Comment;
+use PhpOffice\PhpWord\Element\Formula;
+use PhpOffice\PhpWord\Element\Image;
+use PhpOffice\PhpWord\Element\Section;
+use PhpOffice\PhpWord\Element\Text;
+use PhpOffice\PhpWord\Element\TextRun;
+use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Settings;
-use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\Writer\Word2007;
-use PhpOffice\PhpWordTests\AbstractWebServerEmbeddedTest;
+use PhpOffice\PhpWord\Reader\Word2007;
+use PhpOffice\PhpWord\Style\Font;
 use PhpOffice\PhpWordTests\TestHelperDOCX;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\Word2007.
+ * Test class for PhpOffice\PhpWord\Reader\Word2007.
+ *
+ * @coversDefaultClass \PhpOffice\PhpWord\Reader\Word2007
  *
  * @runTestsInSeparateProcesses
  */
-class Word2007Test extends AbstractWebServerEmbeddedTest
+class Word2007Test extends \PHPUnit\Framework\TestCase
 {
     /**
      * Tear down after each test.
@@ -41,184 +49,179 @@ class Word2007Test extends AbstractWebServerEmbeddedTest
     }
 
     /**
-     * Construct.
+     * Test canRead() method.
      */
-    public function testConstruct(): void
+    public function testCanRead(): void
     {
-        $object = new Word2007(new PhpWord());
-
-        $writerParts = [
-            'ContentTypes' => 'ContentTypes',
-            'Rels' => 'Rels',
-            'DocPropsApp' => 'DocPropsApp',
-            'Document' => 'Document',
-            'Styles' => 'Styles',
-            'Numbering' => 'Numbering',
-            'Settings' => 'Settings',
-            'WebSettings' => 'WebSettings',
-            'Header' => 'Header',
-            'Footer' => 'Footer',
-            'Footnotes' => 'Footnotes',
-            'Endnotes' => 'Footnotes',
-        ];
-        foreach ($writerParts as $part => $type) {
-            self::assertInstanceOf(
-                "PhpOffice\\PhpWord\\Writer\\Word2007\\Part\\{$type}",
-                $object->getWriterPart($part)
-            );
-            self::assertInstanceOf(
-                'PhpOffice\\PhpWord\\Writer\\Word2007',
-                $object->getWriterPart($part)->getParentWriter()
-            );
-        }
+        $object = new Word2007();
+        self::assertTrue($object->canRead(dirname(__DIR__, 1) . '/_files/documents/reader.docx'));
     }
 
     /**
-     * Save.
+     * Can read exception.
      */
-    public function testSave(): void
+    public function testCanReadFailed(): void
     {
-        $localImage = __DIR__ . '/../_files/images/earth.jpg';
-        $remoteImage = self::getRemoteGifImageUrl();
-        $phpWord = new PhpWord();
-        $phpWord->addFontStyle('Font', ['size' => 11]);
-        $phpWord->addParagraphStyle('Paragraph', ['alignment' => Jc::CENTER]);
-        $section = $phpWord->addSection();
-        $section->addText('Test 1', 'Font', 'Paragraph');
-        $section->addTextBreak();
-        $section->addText('Test 2');
-        $section = $phpWord->addSection();
-        $textrun = $section->addTextRun();
-        $textrun->addText('Test 3');
-        $footnote = $textrun->addFootnote();
-        $footnote->addLink('https://github.com/PHPOffice/PHPWord');
-        $header = $section->addHeader();
-        $header->addImage($localImage);
-        $footer = $section->addFooter();
-        $footer->addImage($remoteImage);
-
-        $writer = new Word2007($phpWord);
-        $file = __DIR__ . '/../_files/temp.docx';
-        $writer->save($file);
-
-        self::assertFileExists($file);
-
-        unlink($file);
+        $object = new Word2007();
+        self::assertFalse($object->canRead(dirname(__DIR__, 1) . '/_files/documents/foo.docx'));
     }
 
     /**
-     * Save using disk caching.
+     * Load.
      */
-    public function testSaveUseDiskCaching(): void
+    public function testLoad(): void
     {
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        $section->addText('Test');
-        $footnote = $section->addFootnote();
-        $footnote->addText('Test');
+        $phpWord = IOFactory::load(dirname(__DIR__, 1) . '/_files/documents/reader.docx', 'Word2007');
 
-        $writer = new Word2007($phpWord);
-        $dir = Settings::getTempDir() . DIRECTORY_SEPARATOR . 'phpwordcachefooter';
-        if (!is_dir($dir) && !mkdir($dir)) {
-            self::fail('Unable to create temp directory');
-        }
-        $writer->setUseDiskCaching(true, $dir);
-        $file = __DIR__ . '/../_files/temp.docx';
-        $writer->save($file);
-
-        self::assertFileExists($file);
-
-        unlink($file);
-        TestHelperDOCX::deleteDir($dir);
-    }
-
-    /**
-     * Check content types.
-     */
-    public function testCheckContentTypes(): void
-    {
-        $images = [
-            'mars_noext_jpg' => '1.jpg',
-            'mars.jpg' => '2.jpg',
-            'mario.gif' => '3.gif',
-            'firefox.png' => '4.png',
-            'duke_nukem.bmp' => '5.bmp',
-            'angela_merkel.tif' => '6.tif',
-        ];
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        foreach ($images as $source => $target) {
-            $section->addImage(__DIR__ . "/../_files/images/{$source}");
-        }
+        self::assertInstanceOf(PhpWord::class, $phpWord);
+        self::assertTrue($phpWord->getSettings()->hasDoNotTrackMoves());
+        self::assertFalse($phpWord->getSettings()->hasDoNotTrackFormatting());
+        self::assertEquals(100, $phpWord->getSettings()->getZoom());
 
         $doc = TestHelperDOCX::getDocument($phpWord);
-        $mediaPath = $doc->getPath() . '/word/media';
+        self::assertEquals('0', $doc->getElementAttribute('/w:document/w:body/w:p/w:r[w:t/node()="italics"]/w:rPr/w:b', 'w:val'));
+    }
 
-        foreach ($images as $source => $target) {
-            self::assertFileEquals(
-                __DIR__ . "/../_files/images/{$source}",
-                $mediaPath . "/section_image{$target}"
-            );
+    /**
+     * Load a Word 2011 file.
+     */
+    public function testLoadWord2011(): void
+    {
+        $reader = new Word2007();
+        $phpWord = $reader->load(dirname(__DIR__, 1) . '/_files/documents/reader-2011.docx');
+
+        self::assertInstanceOf(PhpWord::class, $phpWord);
+
+        $doc = TestHelperDOCX::getDocument($phpWord);
+        self::assertTrue($doc->elementExists('/w:document/w:body/w:p[3]/w:r/w:pict/v:shape/v:imagedata'));
+    }
+
+    /**
+     * Load a Word without/withoutImages.
+     *
+     * @dataProvider providerSettingsImageLoading
+     */
+    public function testLoadWord2011SettingsImageLoading(bool $hasImageLoading): void
+    {
+        $reader = new Word2007();
+        $reader->setImageLoading($hasImageLoading);
+        $phpWord = $reader->load(dirname(__DIR__, 1) . '/_files/documents/reader-2011.docx');
+
+        self::assertInstanceOf(PhpWord::class, $phpWord);
+
+        $sections = $phpWord->getSections();
+        self::assertCount(1, $sections);
+        $section = $sections[0];
+        $elements = $section->getElements();
+        self::assertCount(3, $elements);
+        $element = $elements[2];
+        self::assertInstanceOf(TextRun::class, $element);
+        $subElements = $element->getElements();
+        if ($hasImageLoading) {
+            self::assertCount(1, $subElements);
+            $subElement = $subElements[0];
+            self::assertInstanceOf(Image::class, $subElement);
+        } else {
+            self::assertCount(0, $subElements);
         }
     }
 
-    /**
-     * Get writer part return null value.
-     */
-    public function testGetWriterPartNull(): void
+    public function providerSettingsImageLoading(): iterable
     {
-        $object = new Word2007();
-        self::assertNull($object->getWriterPart());
+        return [
+            [true],
+            [false],
+        ];
     }
 
-    /**
-     * Set/get use disk caching.
-     */
-    public function testSetGetUseDiskCaching(): void
+    public function testLoadComments(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->addSection();
-        $object = new Word2007($phpWord);
-        $object->setUseDiskCaching(true, PHPWORD_TESTS_BASE_DIR);
-        $writer = new Word2007($phpWord);
-        ob_start();
-        $writer->save('php://output');
-        $contents = ob_get_contents();
-        self::assertTrue(ob_end_clean());
-        self::assertTrue($object->isUseDiskCaching());
-        self::assertNotEmpty($contents);
+        $phpWord = IOFactory::load(dirname(__DIR__, 1) . '/_files/documents/reader-comments.docx');
+
+        self::assertInstanceOf(PhpWord::class, $phpWord);
+
+        self::assertEquals(2, $phpWord->getComments()->countItems());
+
+        /** @var Comment $comment */
+        $comment = $phpWord->getComments()->getItem(0);
+        self::assertInstanceOf(Comment::class, $comment);
+        self::assertEquals('shaedrich', $comment->getAuthor());
+        self::assertEquals(new DateTime('2021-10-28T13:56:55Z'), $comment->getDate());
+        self::assertEquals('SH', $comment->getInitials());
+        self::assertCount(1, $comment->getElements());
+        self::assertInstanceOf(Text::class, $comment->getElement(0));
+        self::assertEquals('This this be lowercase', $comment->getElement(0)->getText());
+        /** @var Font $fontStyle */
+        $fontStyle = $comment->getElement(0)->getFontStyle();
+        self::assertInstanceOf(Font::class, $fontStyle);
+        self::assertEquals('de-DE', $fontStyle->getLang()->getLatin());
+
+        /** @var Comment $comment */
+        $comment = $phpWord->getComments()->getItem(1);
+        self::assertInstanceOf(Comment::class, $comment);
+        self::assertEquals('shaedrich', $comment->getAuthor());
+        self::assertEquals(new DateTime('2021-11-02T19:10:00Z'), $comment->getDate());
+        self::assertEquals('SH', $comment->getInitials());
+        self::assertCount(1, $comment->getElements());
+        self::assertInstanceOf(Text::class, $comment->getElement(0));
+        self::assertEquals('But this should be uppercase', $comment->getElement(0)->getText());
+        /** @var Font $fontStyle */
+        $fontStyle = $comment->getElement(0)->getFontStyle();
+        self::assertInstanceOf(Font::class, $fontStyle);
+        self::assertEquals('de-DE', $fontStyle->getLang()->getLatin());
     }
 
-    /**
-     * Use disk caching exception.
-     */
-    public function testSetUseDiskCachingException(): void
+    public function testLoadFormula(): void
     {
-        $this->expectException(\PhpOffice\PhpWord\Exception\Exception::class);
-        $dir = implode(DIRECTORY_SEPARATOR, [PHPWORD_TESTS_BASE_DIR, 'foo']);
+        $phpWord = IOFactory::load(dirname(__DIR__, 1) . '/_files/documents/reader-formula.docx');
 
-        $object = new Word2007();
-        $object->setUseDiskCaching(true, $dir);
-    }
+        self::assertInstanceOf(PhpWord::class, $phpWord);
 
-    /**
-     * File is detected as Word 2007.
-     */
-    public function testMime(): void
-    {
-        $phpWord = new PhpWord();
-        $section = $phpWord->addSection();
-        $section->addText('Test 1');
+        $sections = $phpWord->getSections();
+        self::assertCount(1, $sections);
 
-        $writer = new Word2007($phpWord);
-        $file = __DIR__ . '/../_files/temp.docx';
-        $writer->save($file);
+        $section = $sections[0];
+        self::assertInstanceOf(Section::class, $section);
 
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($file);
+        $elements = $section->getElements();
+        self::assertCount(1, $elements);
 
-        self::assertEquals('application/vnd.openxmlformats-officedocument.wordprocessingml.document', $mime);
+        $element = $elements[0];
+        self::assertInstanceOf(Formula::class, $element);
 
-        unlink($file);
+        $elements = $element->getMath()->getElements();
+        self::assertCount(5, $elements);
+
+        /** @var Element\Fraction $element */
+        $element = $elements[0];
+        self::assertInstanceOf(Element\Fraction::class, $element);
+        /** @var Element\Identifier $numerator */
+        $numerator = $element->getNumerator();
+        self::assertInstanceOf(Element\Identifier::class, $numerator);
+        self::assertEquals('π', $numerator->getValue());
+        /** @var Element\Numeric $denominator */
+        $denominator = $element->getDenominator();
+        self::assertInstanceOf(Element\Numeric::class, $denominator);
+        self::assertEquals(2, $denominator->getValue());
+
+        /** @var Element\Operator $element */
+        $element = $elements[1];
+        self::assertInstanceOf(Element\Operator::class, $element);
+        self::assertEquals('+', $element->getValue());
+
+        /** @var Element\Identifier $element */
+        $element = $elements[2];
+        self::assertInstanceOf(Element\Identifier::class, $element);
+        self::assertEquals('a', $element->getValue());
+
+        /** @var Element\Operator $element */
+        $element = $elements[3];
+        self::assertInstanceOf(Element\Operator::class, $element);
+        self::assertEquals('∗', $element->getValue());
+
+        /** @var Element\Numeric $element */
+        $element = $elements[4];
+        self::assertInstanceOf(Element\Numeric::class, $element);
+        self::assertEquals(2, $element->getValue());
     }
 }

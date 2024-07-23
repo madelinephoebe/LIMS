@@ -15,50 +15,147 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\ODText\Element;
+namespace PhpOffice\PhpWordTests\Element;
 
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWordTests\TestHelperDOCX;
-use PHPUnit\Framework\TestCase;
+use InvalidArgumentException;
+use PhpOffice\PhpWord\Element\Field;
+use PhpOffice\PhpWord\Element\TextRun;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\ODText\Element subnamespace.
+ * Test class for PhpOffice\PhpWord\Element\Field.
+ *
+ * @runTestsInSeparateProcesses
  */
-class FieldTest extends TestCase
+class FieldTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * Executed before each method of the class.
+     * New instance.
      */
-    protected function tearDown(): void
+    public function testConstructNull(): void
     {
-        TestHelperDOCX::clear();
+        $oField = new Field();
+
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Field', $oField);
     }
 
-    public function testFieldFilename(): void
+    /**
+     * New instance with type.
+     */
+    public function testConstructWithType(): void
     {
-        $phpWord = new PhpWord();
+        $oField = new Field('DATE');
 
-        $section = $phpWord->addSection();
-        $section->addField('FILENAME');
-
-        $doc = TestHelperDOCX::getDocument($phpWord, 'ODText');
-
-        self::assertTrue($doc->elementExists('/office:document-content/office:body/office:text/text:section/text:span/text:file-name'));
-        self::assertEquals('false', $doc->getElementAttribute('/office:document-content/office:body/office:text/text:section/text:span/text:file-name', 'text:fixed'));
-        self::assertEquals('name', $doc->getElementAttribute('/office:document-content/office:body/office:text/text:section/text:span/text:file-name', 'text:display'));
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Field', $oField);
+        self::assertEquals('DATE', $oField->getType());
     }
 
-    public function testFieldFilenameOptionPath(): void
+    /**
+     * New instance with type and properties.
+     */
+    public function testConstructWithTypeProperties(): void
     {
-        $phpWord = new PhpWord();
+        $oField = new Field('DATE', ['dateformat' => 'd-M-yyyy']);
 
-        $section = $phpWord->addSection();
-        $section->addField('FILENAME', [], ['Path']);
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Field', $oField);
+        self::assertEquals('DATE', $oField->getType());
+        self::assertEquals(['dateformat' => 'd-M-yyyy'], $oField->getProperties());
+    }
 
-        $doc = TestHelperDOCX::getDocument($phpWord, 'ODText');
+    /**
+     * New instance with type and properties and options.
+     */
+    public function testConstructWithTypePropertiesOptions(): void
+    {
+        $oField = new Field('DATE', ['dateformat' => 'd-M-yyyy'], ['SakaEraCalendar', 'PreserveFormat']);
 
-        self::assertTrue($doc->elementExists('/office:document-content/office:body/office:text/text:section/text:span/text:file-name'));
-        self::assertEquals('false', $doc->getElementAttribute('/office:document-content/office:body/office:text/text:section/text:span/text:file-name', 'text:fixed'));
-        self::assertEquals('full', $doc->getElementAttribute('/office:document-content/office:body/office:text/text:section/text:span/text:file-name', 'text:display'));
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Field', $oField);
+        self::assertEquals('DATE', $oField->getType());
+        self::assertEquals(['dateformat' => 'd-M-yyyy'], $oField->getProperties());
+        self::assertEquals(['SakaEraCalendar', 'PreserveFormat'], $oField->getOptions());
+    }
+
+    /**
+     * New instance with type and properties and options and text.
+     */
+    public function testConstructWithTypePropertiesOptionsText(): void
+    {
+        $oField = new Field('XE', [], ['Bold', 'Italic'], 'FieldValue');
+
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Field', $oField);
+        self::assertEquals('XE', $oField->getType());
+        self::assertEquals([], $oField->getProperties());
+        self::assertEquals(['Bold', 'Italic'], $oField->getOptions());
+        self::assertEquals('FieldValue', $oField->getText());
+    }
+
+    /**
+     * New instance with type and properties and options and text as TextRun.
+     */
+    public function testConstructWithTypePropertiesOptionsTextAsTextRun(): void
+    {
+        $textRun = new TextRun();
+        $textRun->addText('test string');
+
+        $oField = new Field('XE', [], ['Bold', 'Italic'], $textRun);
+
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Field', $oField);
+        self::assertEquals('XE', $oField->getType());
+        self::assertEquals([], $oField->getProperties());
+        self::assertEquals(['Bold', 'Italic'], $oField->getOptions());
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\TextRun', $oField->getText());
+    }
+
+    public function testConstructWithOptionValue(): void
+    {
+        $oField = new Field('INDEX', [], ['\\c "3" \\h "A"']);
+
+        self::assertInstanceOf('PhpOffice\\PhpWord\\Element\\Field', $oField);
+        self::assertEquals('INDEX', $oField->getType());
+        self::assertEquals([], $oField->getProperties());
+        self::assertEquals(['\\c "3" \\h "A"'], $oField->getOptions());
+    }
+
+    /**
+     * Test setType exception.
+     */
+    public function testSetTypeException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid type');
+        $object = new Field();
+        $object->setType('foo');
+    }
+
+    /**
+     * Test setProperties exception.
+     */
+    public function testSetPropertiesException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid property');
+        $object = new Field('PAGE');
+        $object->setProperties(['foo' => 'bar']);
+    }
+
+    /**
+     * Test setOptions exception.
+     */
+    public function testSetOptionsException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid option');
+        $object = new Field('PAGE');
+        $object->setOptions(['foo' => 'bar']);
+    }
+
+    /**
+     * Test setText exception.
+     */
+    public function testSetTextException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid text');
+        $object = new Field('XE');
+        $object->setText([]);
     }
 }

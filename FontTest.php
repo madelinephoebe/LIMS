@@ -15,285 +15,213 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\HTML;
+namespace PhpOffice\PhpWordTests\Style;
 
-use DOMXPath;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\SimpleType\Jc;
+use PhpOffice\PhpWord\Style\Font;
 use PhpOffice\PhpWord\Style\Language;
+use PhpOffice\PhpWordTests\TestHelperDOCX;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\HTML\Style\Font.
+ * Test class for PhpOffice\PhpWord\Style\Font.
+ *
+ * @runTestsInSeparateProcesses
  */
 class FontTest extends \PHPUnit\Framework\TestCase
 {
-    /** @var string */
-    private $defaultFontName;
-
-    /** @var float|int */
-    private $defaultFontSize;
-
     /**
-     * Executed before each method of the class.
-     */
-    protected function setUp(): void
-    {
-        $this->defaultFontName = Settings::getDefaultFontName();
-        $this->defaultFontSize = Settings::getDefaultFontSize();
-    }
-
-    /**
-     * Executed after each method of the class.
+     * Tear down after each test.
      */
     protected function tearDown(): void
     {
-        Settings::setDefaultFontName($this->defaultFontName);
-        Settings::setDefaultFontSize($this->defaultFontSize);
+        TestHelperDOCX::clear();
     }
 
     /**
-     * Tests font names - without generics.
+     * Test initiation for style type and paragraph style.
      */
-    public function testFontNames1(): void
+    public function testInitiation(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->setDefaultFontName('Courier New');
-        $phpWord->setDefaultFontSize(12);
-        $phpWord->addFontStyle('style1', ['name' => 'Tahoma', 'size' => 10, 'color' => '1B2232', 'bold' => true]);
-        $phpWord->addFontStyle('style2', ['name' => 'Arial', 'size' => 10]);
-        $phpWord->addFontStyle('style3', ['name' => 'hack attempt\'}; display:none', 'size' => 10]);
-        $phpWord->addFontStyle('style4', ['name' => 'padmaa 1.1', 'size' => 10, 'bold' => true]);
-        $phpWord->addFontStyle('style5', ['name' => 'MingLiU-ExtB', 'size' => 10, 'bold' => true]);
-        $section1 = $phpWord->addSection();
-        $section1->addText('Default font');
-        $section1->addText('Tahoma', 'style1');
-        $section1->addText('Arial', 'style2');
-        $section1->addText('hack attempt', 'style3');
-        $section1->addText('padmaa 1.1 bold', 'style4');
-        $section1->addText('MingLiu-ExtB bold', 'style5');
+        $object = new Font('text', ['alignment' => Jc::BOTH]);
 
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[1]', 'class'));
-        self::assertEquals(0, Helper::getLength($xpath, '/html/body/div/p[1]/span'));
-        self::assertEquals('style1', Helper::getTextContent($xpath, '/html/body/div/p[2]/span', 'class'));
-        self::assertEquals('style2', Helper::getTextContent($xpath, '/html/body/div/p[3]/span', 'class'));
-        self::assertEquals('style3', Helper::getTextContent($xpath, '/html/body/div/p[4]/span', 'class'));
-        self::assertEquals('style4', Helper::getTextContent($xpath, '/html/body/div/p[5]/span', 'class'));
-        self::assertEquals('style5', Helper::getTextContent($xpath, '/html/body/div/p[6]/span', 'class'));
-
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        $prg = preg_match('/^[*][^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('* {font-family: \'Courier New\'; font-size: 12pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style1[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style1 {font-family: \'Tahoma\'; font-size: 10pt; color: #1B2232; font-weight: bold;}', $matches[0]);
-        $prg = preg_match('/^[.]style2[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style2 {font-family: \'Arial\'; font-size: 10pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style3[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style3 {font-family: \'hack attempt&#039;}; display:none\'; font-size: 10pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style4[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style4 {font-family: \'padmaa 1.1\'; font-size: 10pt; font-weight: bold;}', $matches[0]);
-        $prg = preg_match('/^[.]style5[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style5 {font-family: \'MingLiU-ExtB\'; font-size: 10pt; font-weight: bold;}', $matches[0]);
+        self::assertEquals('text', $object->getStyleType());
+        self::assertInstanceOf(\PhpOffice\PhpWord\Style\Paragraph::class, $object->getParagraph());
+        self::assertIsArray($object->getStyleValues());
     }
 
     /**
-     * Tests font names - with generics.
+     * Test setting style values with null or empty value.
      */
-    public function testFontNames2(): void
+    public function testSetStyleValueWithNullOrEmpty(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->setDefaultFontName('Courier New');
-        $phpWord->setDefaultFontSize(12);
-        $phpWord->addFontStyle('style1', ['name' => 'Tahoma', 'size' => 10, 'color' => '1B2232', 'bold' => true]);
-        $phpWord->addFontStyle('style2', ['name' => 'Arial', 'size' => 10, 'fallbackFont' => 'sans-serif']);
-        $phpWord->addFontStyle('style3', ['name' => 'DejaVu Sans Monospace', 'size' => 10, 'fallbackFont' => 'monospace']);
-        $phpWord->addFontStyle('style4', ['name' => 'Arial', 'size' => 10, 'fallbackFont' => 'invalid']);
-        $section1 = $phpWord->addSection();
-        $section1->addText('Default font');
-        $section1->addText('Tahoma', 'style1');
-        $section1->addText('Arial', 'style2');
-        $section1->addText('DejaVu Sans Monospace', 'style3');
-        $section1->addText('Arial with invalid fallback', 'style4');
+        $object = new Font();
 
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[1]', 'class'));
-        self::assertEquals(0, Helper::getLength($xpath, '/html/body/div/p[1]/span'));
-        self::assertEquals('style1', Helper::getTextContent($xpath, '/html/body/div/p[2]/span', 'class'));
-        self::assertEquals('style2', Helper::getTextContent($xpath, '/html/body/div/p[3]/span', 'class'));
-        self::assertEquals('style3', Helper::getTextContent($xpath, '/html/body/div/p[4]/span', 'class'));
-        self::assertEquals('style4', Helper::getTextContent($xpath, '/html/body/div/p[5]/span', 'class'));
-
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        $prg = preg_match('/^[*][^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('* {font-family: \'Courier New\'; font-size: 12pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style1[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style1 {font-family: \'Tahoma\'; font-size: 10pt; color: #1B2232; font-weight: bold;}', $matches[0]);
-        $prg = preg_match('/^[.]style2[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style2 {font-family: \'Arial\', sans-serif; font-size: 10pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style3[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style3 {font-family: \'DejaVu Sans Monospace\', monospace; font-size: 10pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style4[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style4 {font-family: \'Arial\'; font-size: 10pt;}', $matches[0]);
+        $attributes = [
+            'name' => null,
+            'size' => null,
+            'hint' => null,
+            'color' => null,
+            'bold' => false,
+            'italic' => false,
+            'underline' => Font::UNDERLINE_NONE,
+            'superScript' => false,
+            'subScript' => false,
+            'strikethrough' => false,
+            'doubleStrikethrough' => false,
+            'smallCaps' => false,
+            'allCaps' => false,
+            'rtl' => false,
+            'fgColor' => null,
+            'bgColor' => null,
+            'scale' => null,
+            'spacing' => null,
+            'kerning' => null,
+            'lang' => null,
+            'hidden' => false,
+            'whiteSpace' => '',
+            'fallbackFont' => '',
+        ];
+        foreach ($attributes as $key => $default) {
+            $get = is_bool($default) ? "is{$key}" : "get{$key}";
+            self::assertEquals($default, $object->$get());
+            $object->setStyleValue($key, null);
+            self::assertEquals($default, $object->$get());
+            $object->setStyleValue($key, '');
+            self::assertEquals($default, $object->$get());
+        }
     }
 
     /**
-     * Tests font names - with generics including for default font.
+     * Test setting style values with normal value.
      */
-    public function testFontNames3(): void
+    public function testSetStyleValueNormal(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->setDefaultFontName('Courier New');
-        $phpWord->setDefaultFontSize(12);
-        $phpWord->addFontStyle('style1', ['name' => 'Tahoma', 'size' => 10, 'color' => '1B2232', 'bold' => true]);
-        $phpWord->addFontStyle('style2', ['name' => 'Arial', 'size' => 10, 'fallbackFont' => 'sans-serif']);
-        $phpWord->addFontStyle('style3', ['name' => 'DejaVu Sans Monospace', 'size' => 10, 'fallbackFont' => 'monospace']);
-        $phpWord->addFontStyle('style4', ['name' => 'Arial', 'size' => 10, 'fallbackFont' => 'invalid']);
-        $section1 = $phpWord->addSection();
-        $section1->addText('Default font');
-        $section1->addText('Tahoma', 'style1');
-        $section1->addText('Arial', 'style2');
-        $section1->addText('DejaVu Sans Monospace', 'style3');
-        $section1->addText('Arial with invalid fallback', 'style4');
+        $object = new Font();
 
-        $dom = Helper::getAsHTML($phpWord, '', 'monospace');
-        $xpath = new DOMXPath($dom);
-
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[1]', 'class'));
-        self::assertEquals(0, Helper::getLength($xpath, '/html/body/div/p[1]/span'));
-        self::assertEquals('style1', Helper::getTextContent($xpath, '/html/body/div/p[2]/span', 'class'));
-        self::assertEquals('style2', Helper::getTextContent($xpath, '/html/body/div/p[3]/span', 'class'));
-        self::assertEquals('style3', Helper::getTextContent($xpath, '/html/body/div/p[4]/span', 'class'));
-        self::assertEquals('style4', Helper::getTextContent($xpath, '/html/body/div/p[5]/span', 'class'));
-
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        $prg = preg_match('/^[*][^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('* {font-family: \'Courier New\', monospace; font-size: 12pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style1[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style1 {font-family: \'Tahoma\'; font-size: 10pt; color: #1B2232; font-weight: bold;}', $matches[0]);
-        $prg = preg_match('/^[.]style2[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style2 {font-family: \'Arial\', sans-serif; font-size: 10pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style3[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style3 {font-family: \'DejaVu Sans Monospace\', monospace; font-size: 10pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style4[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style4 {font-family: \'Arial\'; font-size: 10pt;}', $matches[0]);
+        $attributes = [
+            'name' => 'Times New Roman',
+            'size' => 9,
+            'color' => '999999',
+            'hint' => 'eastAsia',
+            'bold' => true,
+            'italic' => true,
+            'underline' => Font::UNDERLINE_HEAVY,
+            'superScript' => true,
+            'subScript' => false,
+            'strikethrough' => true,
+            'doubleStrikethrough' => false,
+            'smallCaps' => true,
+            'allCaps' => false,
+            'fgColor' => Font::FGCOLOR_YELLOW,
+            'bgColor' => 'FFFF00',
+            'lineHeight' => 2,
+            'scale' => 150,
+            'spacing' => 240,
+            'kerning' => 10,
+            'rtl' => true,
+            'noProof' => true,
+            'lang' => new Language(Language::EN_US),
+            'hidden' => true,
+            'whiteSpace' => 'pre-wrap',
+            'fallbackFont' => 'serif',
+        ];
+        $object->setStyleByArray($attributes);
+        foreach ($attributes as $key => $value) {
+            $get = is_bool($value) ? "is{$key}" : "get{$key}";
+            self::assertEquals($value, $object->$get());
+        }
     }
 
     /**
-     * Tests white space.
+     * Test set line height.
      */
-    public function testWhiteSpace(): void
+    public function testLineHeight(): void
     {
         $phpWord = new PhpWord();
-        $phpWord->setDefaultFontSize(12);
-        $phpWord->addFontStyle('style1', ['name' => 'Courier New', 'size' => 10, 'whiteSpace' => 'pre-wrap']);
-        $phpWord->addFontStyle('style2', ['name' => 'Courier New', 'size' => 10, 'whiteSpace' => 'invalid']);
-        $phpWord->addFontStyle('style3', ['name' => 'Courier New', 'size' => 10, 'whiteSpace' => 'normal']);
-        $phpWord->addFontStyle('style4', ['name' => 'Courier New', 'size' => 10, 'whiteSpace' => 'invalid']);
-        $text = 'This                  is                 a               long                      line                                              which                     will                      be              split over 2 lines with pre-wrap';
-        $section1 = $phpWord->addSection();
-        $section1->addText($text);
-        $section1->addText($text, 'style1');
-        $section1->addText($text, 'style2');
-        $section1->addText($text, 'style3');
-        $section1->addText($text, 'style4');
-
-        $dom = Helper::getAsHTML($phpWord, 'pre-wrap');
-        $xpath = new DOMXPath($dom);
-
-        $style = Helper::getTextContent($xpath, '/html/head/style');
-        self::assertNotFalse(preg_match('/^[*][^\\r\\n]*/m', $style, $matches));
-        self::assertEquals('* {font-family: \'Arial\'; font-size: 12pt; white-space: pre-wrap;}', $matches[0]);
-        $prg = preg_match('/^[.]style1[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style1 {font-family: \'Courier New\'; font-size: 10pt; white-space: pre-wrap;}', $matches[0]);
-        $prg = preg_match('/^[.]style2[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style2 {font-family: \'Courier New\'; font-size: 10pt;}', $matches[0]);
-        $prg = preg_match('/^[.]style3[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style3 {font-family: \'Courier New\'; font-size: 10pt; white-space: normal;}', $matches[0]);
-        $prg = preg_match('/^[.]style4[^\\r\\n]*/m', $style, $matches);
-        self::assertNotFalse($prg);
-        self::assertEquals('.style4 {font-family: \'Courier New\'; font-size: 10pt;}', $matches[0]);
-    }
-
-    /**
-     * Tests inline font style.
-     */
-    public function testInline(): void
-    {
-        $phpWord = new PhpWord();
-        $style1 = ['name' => 'Courier New', 'size' => 10, 'whiteSpace' => 'pre-wrap'];
-        $style2 = ['name' => 'Verdana', 'size' => 8.5];
-        $text = 'This is a paragraph.';
-        $section1 = $phpWord->addSection();
-        $section1->addText($text, $style1);
-        $section1->addText($text, $style2);
-        $section1->addText($text);
-
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-
-        self::assertEquals('font-family: \'Courier New\'; font-size: 10pt; white-space: pre-wrap;', Helper::getTextContent($xpath, '/html/body/div/p[1]/span', 'style'));
-        self::assertEquals('font-family: \'Verdana\'; font-size: 8.5pt;', Helper::getTextContent($xpath, '/html/body/div/p[2]/span', 'style'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[3]', 'class'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[3]', 'style'));
-        self::assertEquals(0, Helper::getLength($xpath, '/html/body/div/p[3]/span'));
-    }
-
-    /**
-     * Tests languages.
-     */
-    public function testLanguages(): void
-    {
-        $phpWord = new PhpWord();
-        $langarabic = new Language('', '', 'ar-DZ');
-        $phpWord->addFontStyle('arabic', ['lang' => $langarabic]);
-        $langhindi = new Language('', 'hi-IN');
-        $phpWord->addFontStyle('hindi', ['lang' => $langhindi, 'name' => 'Arial']);
-        $phpWord->addFontStyle('nolang', ['name' => 'Verdana', 'size' => '10']);
         $section = $phpWord->addSection();
-        $textrun = $section->addTextRun();
-        $textrun->addText('سلام این یک پاراگراف راست به چپ است', ['rtl' => true, 'lang' => $langarabic]);
-        $section->addText('Ce texte-ci est en français.', ['lang' => 'fr-BE']);
-        $section->addText('Ce texte-ci aussi.', ['lang' => 'fr-BE', 'name' => 'Verdana']);
-        $section->addText('Text with no language');
-        $section->addText('पाठ हिंदी में', 'hindi');
-        $section->addText('Non-existent style', 'nonexistent');
-        $section->addText('Style without language', 'nolang');
 
-        $dom = Helper::getAsHTML($phpWord);
-        $xpath = new DOMXPath($dom);
-        self::assertEquals('ar-DZ', Helper::getTextContent($xpath, '/html/body/div/p[1]/span', 'lang'));
-        self::assertEquals('fr-BE', Helper::getTextContent($xpath, '/html/body/div/p[2]/span', 'lang'));
-        self::assertEquals('fr-BE', Helper::getTextContent($xpath, '/html/body/div/p[3]/span', 'lang'));
-        self::assertEquals('font-family: \'Verdana\';', Helper::getTextContent($xpath, '/html/body/div/p[3]/span', 'style'));
-        self::assertEquals(0, Helper::getLength($xpath, '/html/body/div/p[4]/span'));
-        self::assertEquals('hi-IN', Helper::getTextContent($xpath, '/html/body/div/p[5]/span', 'lang'));
-        self::assertEquals('hindi', Helper::getTextContent($xpath, '/html/body/div/p[5]/span', 'class'));
-        self::assertEquals('nonexistent', Helper::getTextContent($xpath, '/html/body/div/p[6]/span', 'class'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[6]/span', 'lang'));
-        self::assertEquals('nolang', Helper::getTextContent($xpath, '/html/body/div/p[7]/span', 'class'));
-        self::assertEmpty(Helper::getNamedItem($xpath, '/html/body/div/p[7]/span', 'lang'));
+        // Test style array
+        $text = $section->addText('This is a test', ['line-height' => 2.0]);
+
+        $doc = TestHelperDOCX::getDocument($phpWord);
+        $element = $doc->getElement('/w:document/w:body/w:p/w:pPr/w:spacing');
+
+        $lineHeight = $element->getAttribute('w:line');
+        $lineRule = $element->getAttribute('w:lineRule');
+
+        self::assertEquals(480, $lineHeight);
+        self::assertEquals('auto', $lineRule);
+
+        // Test setter
+        TestHelperDOCX::clear();
+        $text->getFontStyle()->setLineHeight(3.0);
+        $doc = TestHelperDOCX::getDocument($phpWord);
+        $element = $doc->getElement('/w:document/w:body/w:p/w:pPr/w:spacing');
+
+        $lineHeight = $element->getAttribute('w:line');
+        $lineRule = $element->getAttribute('w:lineRule');
+
+        self::assertEquals(720, $lineHeight);
+        self::assertEquals('auto', $lineRule);
+    }
+
+    /**
+     * Test line height floatval.
+     */
+    public function testLineHeightFloatval(): void
+    {
+        $object = new Font(null, ['alignment' => Jc::CENTER]);
+        $object->setLineHeight('1.5pt');
+        self::assertEquals(1.5, $object->getLineHeight());
+    }
+
+    /**
+     * Test line height exception by using nonnumeric value.
+     */
+    public function testLineHeightException(): void
+    {
+        $this->expectException(\PhpOffice\PhpWord\Exception\InvalidStyleException::class);
+        $object = new Font();
+        $object->setLineHeight('a');
+    }
+
+    /**
+     * Test setting the language as a string.
+     */
+    public function testSetLangAsString(): void
+    {
+        $object = new Font();
+        $object->setLang(Language::FR_BE);
+        self::assertInstanceOf('PhpOffice\PhpWord\Style\Language', $object->getLang());
+        self::assertEquals(Language::FR_BE, $object->getLang()->getLatin());
+    }
+
+    public function testRTL(): void
+    {
+        $object = new Font();
+        self::assertNull($object->isRTL());
+        self::assertInstanceOf(Font::class, $object->setRTL(true));
+        self::assertTrue($object->isRTL());
+        self::assertInstanceOf(Font::class, $object->setRTL(false));
+        self::assertFalse($object->isRTL());
+    }
+
+    public function testRTLSettings(): void
+    {
+        Settings::setDefaultRtl(null);
+        $object = new Font();
+        self::assertNull($object->isRTL());
+
+        Settings::setDefaultRtl(true);
+        $object = new Font();
+        self::assertTrue($object->isRTL());
+
+        Settings::setDefaultRtl(false);
+        $object = new Font();
+        self::assertFalse($object->isRTL());
+
+        Settings::setDefaultRtl(null);
     }
 }

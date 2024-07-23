@@ -16,81 +16,65 @@
  */
 declare(strict_types=1);
 
-namespace PhpOffice\PhpWordTests\Writer\Word2007\Element;
+namespace PhpOffice\PhpWordTests\Element;
 
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWordTests\TestHelperDOCX;
+use InvalidArgumentException;
+use PhpOffice\PhpWord\Element\PageBreak;
+use PhpOffice\PhpWord\Element\TextRun;
+use PhpOffice\PhpWord\Element\Title;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\Word2007\Element subnamespace.
+ * Test class for PhpOffice\PhpWord\Element\Title.
+ *
+ * @coversDefaultClass \PhpOffice\PhpWord\Element\Title
+ *
+ * @runTestsInSeparateProcesses
  */
 class TitleTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * Executed after each method of the class.
+     * Create new instance with string.
      */
-    protected function tearDown(): void
+    public function testConstruct(): void
     {
-        TestHelperDOCX::clear();
+        $title = new Title('text');
+
+        self::assertInstanceOf(Title::class, $title);
+        self::assertEquals('text', $title->getText());
+        self::assertEquals(1, $title->getDepth());
+        self::assertNull($title->getPageNumber());
+        self::assertNull($title->getStyle());
     }
 
-    public function testWriteTitleWithStyle(): void
+    /**
+     * Create new instance with TextRun.
+     */
+    public function testConstructWithTextRun(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->addTitleStyle(0, ['size' => 14, 'italic' => true]);
+        $textRun = new TextRun();
+        $textRun->addText('text');
+        $title = new Title($textRun);
 
-        $section = $phpWord->addSection();
-        $section->addTitle('Test Title0', 0);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        self::assertTrue($doc->elementExists('/w:document/w:body/w:p[1]/w:r/w:t'));
-        self::assertEquals('Test Title0', $doc->getElement('/w:document/w:body/w:p[1]/w:r/w:t')->textContent);
-        self::assertTrue($doc->elementExists('/w:document/w:body/w:p[1]/w:pPr/w:pStyle'));
-        self::assertEquals('Title', $doc->getElementAttribute('/w:document/w:body/w:p[1]/w:pPr/w:pStyle', 'w:val'));
+        self::assertInstanceOf(TextRun::class, $title->getText());
+        self::assertEquals(1, $title->getDepth());
+        self::assertNull($title->getPageNumber());
+        self::assertNull($title->getStyle());
     }
 
-    public function testWriteTitleWithoutStyle(): void
+    public function testConstructWithInvalidArgument(): void
     {
-        $phpWord = new PhpWord();
+        $this->expectException(InvalidArgumentException::class);
 
-        $section = $phpWord->addSection();
-        $section->addTitle('Test Title0', 0);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        self::assertTrue($doc->elementExists('/w:document/w:body/w:p[1]/w:r/w:t'));
-        self::assertEquals('Test Title0', $doc->getElement('/w:document/w:body/w:p[1]/w:r/w:t')->textContent);
-        self::assertFalse($doc->elementExists('/w:document/w:body/w:p[1]/w:pPr'));
+        new Title(new PageBreak());
     }
 
-    public function testWriteHeadingWithStyle(): void
+    public function testConstructWithPageNumber(): void
     {
-        $phpWord = new PhpWord();
-        $phpWord->addTitleStyle(1, ['bold' => true], ['spaceAfter' => 240]);
+        $title = new Title('text', 1, 0);
 
-        $section = $phpWord->addSection();
-        $section->addTitle('TestHeading 1', 1);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        self::assertTrue($doc->elementExists('/w:document/w:body/w:p[1]/w:r/w:t'));
-        self::assertEquals('TestHeading 1', $doc->getElement('/w:document/w:body/w:p[1]/w:r/w:t')->textContent);
-        self::assertTrue($doc->elementExists('/w:document/w:body/w:p[1]/w:pPr/w:pStyle'));
-        self::assertEquals('Heading1', $doc->getElementAttribute('/w:document/w:body/w:p[1]/w:pPr/w:pStyle', 'w:val'));
-    }
-
-    public function testWriteHeadingWithoutStyle(): void
-    {
-        $phpWord = new PhpWord();
-
-        $section = $phpWord->addSection();
-        $section->addTitle('TestHeading 1', 1);
-
-        $doc = TestHelperDOCX::getDocument($phpWord);
-
-        self::assertTrue($doc->elementExists('/w:document/w:body/w:p[1]/w:r/w:t'));
-        self::assertEquals('TestHeading 1', $doc->getElement('/w:document/w:body/w:p[1]/w:r/w:t')->textContent);
-        self::assertFalse($doc->elementExists('/w:document/w:body/w:p[1]/w:pPr'));
+        self::assertInstanceOf(Title::class, $title);
+        self::assertEquals('text', $title->getText());
+        self::assertEquals(0, $title->getPageNumber());
+        self::assertNull($title->getStyle());
     }
 }

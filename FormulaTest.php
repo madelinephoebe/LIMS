@@ -15,57 +15,50 @@
  * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
-namespace PhpOffice\PhpWordTests\Writer\ODText\Element;
+namespace PhpOffice\PhpWordTests\Element;
 
 use PhpOffice\Math\Element;
 use PhpOffice\Math\Math;
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWordTests\TestHelperDOCX;
-use PHPUnit\Framework\TestCase;
+use PhpOffice\PhpWord\Element\Formula;
+use PhpOffice\PhpWordTests\AbstractWebServerEmbeddedTest;
 
 /**
- * Test class for PhpOffice\PhpWord\Writer\ODText\Element subnamespace.
+ * Test class for PhpOffice\PhpWord\Element\Formula.
+ *
+ * @runTestsInSeparateProcesses
  */
-class FormulaTest extends TestCase
+class FormulaTest extends AbstractWebServerEmbeddedTest
 {
     /**
-     * Executed before each method of the class.
+     * @covers \Formula::__construct
      */
-    protected function tearDown(): void
+    public function testConstruct(): void
     {
-        TestHelperDOCX::clear();
+        $element = new Formula(new Math());
+
+        self::assertInstanceOf(Formula::class, $element);
     }
 
-    public function testBasicFormula(): void
+    /**
+     * @covers \Formula::getMath
+     * @covers \Formula::setMath
+     */
+    public function testMath(): void
     {
         $math = new Math();
-        $math
-            ->add(
-                new Element\Fraction(
-                    new Element\Numeric(2),
-                    new Element\Identifier('π')
-                )
-            )
-            ->add(
-                new Element\Operator('+')
-            )
-            ->add(
-                new Element\Identifier('a')
-            )
-            ->add(
-                new Element\Operator('∗')
-            )
-            ->add(
-                new Element\Numeric(2)
-            );
+        $math->add(new Element\Fraction(
+            new Element\Numeric(2),
+            new Element\Identifier('π')
+        ));
 
-        $phpWord = new PhpWord();
+        $element = new Formula(new Math());
 
-        $section = $phpWord->addSection();
-        $section->addFormula($math);
+        self::assertInstanceOf(Formula::class, $element);
+        self::assertEquals(new Math(), $element->getMath());
+        self::assertNotEquals($math, $element->getMath());
 
-        $doc = TestHelperDOCX::getDocument($phpWord, 'ODText');
-
-        self::assertTrue($doc->elementExists('/office:document-content/office:body/office:text/text:section/text:p/draw:frame/draw:object'));
+        self::assertInstanceOf(Formula::class, $element->setMath($math));
+        self::assertNotEquals(new Math(), $element->getMath());
+        self::assertEquals($math, $element->getMath());
     }
 }
